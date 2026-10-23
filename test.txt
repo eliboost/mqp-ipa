@@ -1,0 +1,7 @@
+
+- Kargo-Control-Planes: management-a (Prod) und Lab-D (Test). 30 Prod- und 30 ITD-Controller als Shards.
+- Pro App ein Kargo-Project. Repo middleware/kargopromotion (Kustomize: PromotionTasks, Warehouse, Stages lab-d / e1-a / management-b / management-a, AnalysisTemplates) und middleware/deployments.
+- Auf management-a öffnet Kargo einen PR (git-open-pr, git-wait-for-pr), der wie Renovate-MRs auf dem SPOC-Board landet. Der TD-Admin bearbeitet das täglich.
+- Es gibt schon ein Splunk-Board (Kargo-Logs), ein Grafana-Dashboard und Kargo-Metriken auf :9000.
+- Der Kargo-Garbage-Collector räumt nur Promotions und Freight auf (Standard: mind. 20 pro Stage, nur über 14 Tage alt). AnalysisRuns, Jobs und Pods bleiben liegen.
+
