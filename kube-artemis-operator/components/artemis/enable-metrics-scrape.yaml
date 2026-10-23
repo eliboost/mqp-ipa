@@ -1,0 +1,12 @@
+- op: add
+  path: /spec/template/metadata/annotations
+  value: {}
+- op: add
+  path: /spec/template/metadata/annotations/prometheus.io~1port
+  value: "8383"
+- op: add
+  path: /spec/template/metadata/annotations/prometheus.io~1scheme
+  value: http
+- op: add
+  path: /spec/template/metadata/annotations/prometheus.io~1scrape
+  value: 'true'

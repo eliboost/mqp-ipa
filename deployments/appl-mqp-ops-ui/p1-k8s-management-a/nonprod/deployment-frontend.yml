@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqp-ops-ui-frontend-deployment
+  labels:
+    appl: mqp-ops-ui-frontend
+spec:
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      appl: mqp-ops-ui-frontend
+  template:
+    metadata:
+      labels:
+        appl: mqp-ops-ui-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/frontend:0.0.0
+          imagePullPolicy: Always
+          env:
+            - name: APLAT_SECURITY_ENABLED
+              value: "true"
+          ports:
+            - name: "http"
+              containerPort: 4200
+              protocol: TCP
+          resources:
+            limits:
+              memory: 500M
+            requests:
+              memory: 100M
+          volumeMounts:
+            - mountPath: /opt/midw/trusts/aplat
+              name: aplat-trust-and-certs
+              readOnly: true
+            - mountPath: /opt/midw/trusts/pki-all
+              name: pki-all-store
+              readOnly: true
+            - name: app-config-map
+              mountPath: /usr/share/nginx/html/mqp-ops-ui-nonprod/assets/config
+      volumes:
+        - name: aplat-trust-and-certs
+          secret:
+            defaultMode: 420
+            secretName: ces-data-p1-shared-aplat-prod-store
+        - name: pki-all-store
+          secret:
+            defaultMode: 420
+            secretName: ces-data-p1-shared-pki-all-store
+        - name: app-config-map
+          configMap: 
+             name: mqp-ops-ui-frontend-config-map

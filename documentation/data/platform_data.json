@@ -1,0 +1,40 @@
+{
+  "clusters": [
+    {
+      "id": "e1-k8s-pfnet-lab-d",
+      "artemisVersion": "2.57.0",
+      "artemisCloudOperatorVersion": "2.2.2",
+      "pfActivemqOperatorVersion": "0.17.5"
+    },
+    {
+      "id": "e1-k8s-pfnet-a",
+      "artemisVersion": "2.57.0",
+      "artemisCloudOperatorVersion": "2.2.2",
+      "pfActivemqOperatorVersion": "0.17.5"
+    },
+    {
+      "id": "t1-k8s-nucleus-a",
+      "artemisVersion": "2.57.0",
+      "artemisCloudOperatorVersion": "2.2.2",
+      "pfActivemqOperatorVersion": "0.17.5"
+    },
+    {
+      "id": "t1-k8s-pcilight-a",
+      "artemisVersion": "2.57.0",
+      "artemisCloudOperatorVersion": "2.2.2",
+      "pfActivemqOperatorVersion": "0.17.5"
+    },
+    {
+      "id": "p1-k8s-nucleus-a",
+      "artemisVersion": "2.53.0",
+      "artemisCloudOperatorVersion": "2.1.7",
+      "pfActivemqOperatorVersion": "0.17.1"
+    },
+    {
+      "id": "p1-k8s-pcilight-a",
+      "artemisVersion": "2.53.0",
+      "artemisCloudOperatorVersion": "2.1.7",
+      "pfActivemqOperatorVersion": "0.17.1"
+    }
+  ]
+}

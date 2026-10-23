@@ -1,0 +1,14 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>middleware/buildenv/renovate-presets:java",
+    "local>middleware/buildenv/renovate-presets:npm"
+  ],
+  "packageRules": [
+    {
+      "matchPackageNames": ["zone.js"],
+      "allowedVersions": "~0.15.0",
+      "description": "zone.js must match @angular/core peer dependency; bump only when Angular lifts the constraint"
+    }
+  ]
+}

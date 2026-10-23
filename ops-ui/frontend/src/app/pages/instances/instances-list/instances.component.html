@@ -1,0 +1,66 @@
+<app-page-container [pageTitle]="this.context">
+  <pf-card class="col-md-12">
+    <pf-table
+      (rowNavigationEvent)="instanceRowSelectedEvent($event)"
+      [columnReorderingAllowed]="false"
+      [enableCellTextSelection]="true"
+      [heightConfig]="{heightMode: TableHeightMode.AUTO_HEIGHT}"
+      [items]="instances"
+      [loading]="dataForTableIsLoading"
+      [mode]="TableMode.ROW_NAVIGATION"
+      [rowColor]="{evenOdd: true}"
+      size="small"
+      testSelector="table--instances"
+    >
+      <pf-table-column
+        [header]="'INSTANCES.INSTANCES_TABLE.COLUMN_TITLE_INSTANCE' | translate"
+        [sortable]="false"
+        [widthConfig]="{resizable: true, minWidthPx: 50, flex: 1}"
+        path="name"
+      ></pf-table-column>
+      <pf-table-column
+        [contentProvider]="renderOnlineChip"
+        [header]="'INSTANCES.INSTANCES_TABLE.COLUMN_TITLE_STATE' | translate"
+        [sortable]="false"
+        [widthConfig]="{resizable: true, minWidthPx: 50, flex: 1}"
+        path="online"
+      ></pf-table-column>
+      <pf-table-column
+        [header]="'INSTANCES.INSTANCES_TABLE.COLUMN_TITLE_QUEUES' | translate"
+        [textFlow]="TextColumnTextFlow.WRAP_TEXT"
+        [widthConfig]="{resizable: true, minWidthPx: 50, flex: 2}"
+      >
+        <ng-template
+          let-rowData
+          pfTableCell
+        >
+          @for (queue of rowData.item.queues; track $index) {
+            {{ queue }} <br />
+          }
+        </ng-template>
+      </pf-table-column>
+    </pf-table>
+  </pf-card>
+
+  @if (showInstanceOfflineErrorStatusBox) {
+    <pf-card>
+      @if (showInstanceOfflineErrorStatusBox) {
+        <pf-status-box
+          [severity]="PfStatusSeverity.ERROR"
+          [size]="StatusBoxSize.MEDIUM"
+          >{{ 'INSTANCES.STATUS_BOXES.INSTANCE_OFFLINE' | translate: {instance: this.selectedInstance.name} }}
+        </pf-status-box>
+      }
+    </pf-card>
+  }
+
+  @if (instances.length === 0 && !dataForTableIsLoading) {
+    <pf-card>
+      <pf-status-box
+        [severity]="PfStatusSeverity.ERROR"
+        [size]="StatusBoxSize.MEDIUM"
+        >{{ 'INSTANCES.STATUS_BOXES.NO_INSTANCES_VISIBLE' | translate }}
+      </pf-status-box>
+    </pf-card>
+  }
+</app-page-container>

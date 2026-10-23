@@ -1,0 +1,69 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pf-activemq-operator
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - broker.amq.io
+    resources:
+      - activemqartemises
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - cert-manager.io
+    resources:
+      - certificates
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - pf-activemq-operator.pnet.ch
+    resources:
+      - pfactivemqs
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - pf-activemq-operator.pnet.ch
+    resources:
+      - pfactivemqs/finalizers
+    verbs:
+      - update
+  - apiGroups:
+      - pf-activemq-operator.pnet.ch
+    resources:
+      - pfactivemqs/status
+    verbs:
+      - get
+      - patch
+      - update

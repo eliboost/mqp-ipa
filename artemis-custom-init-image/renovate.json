@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>middleware/buildenv/renovate-presets:image"
+  ],
+  "packageRules": [
+    {
+      "description": "Artemis version updates",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchDepNames": [
+        "middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-init"
+      ],
+      "extractVersion": "artemis.(?<version>\\d+\\.\\d+\\.\\d+)$",
+      "automerge": false,
+      "addLabels": [
+        "wf::Blocked"
+      ]
+    }
+  ]
+}

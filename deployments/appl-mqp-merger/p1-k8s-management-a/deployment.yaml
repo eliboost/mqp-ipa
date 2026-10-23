@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: instances-merger
+spec:
+  template:
+    spec:
+      containers:
+      - name: instances-merger
+        env:
+        - name: MERGER_GITLAB_DRYRUN
+          value: 'false'
+        - name: MERGER_CONFIG
+          value: /config/merge-config.yaml
+        - name: MERGER_LOG_DEBUG
+          value: 'true'
+        - name: MERGER_NATS_SERVERS
+          value: p1-linux-mlsu001.pnet.ch:7001,p1-linux-mlsu002.pnet.ch:7001,p1-linux-mlsu003.pnet.ch:7001
+        - name: MERGER_NATS_LOG_PAYLOAD
+          value: 'true'
+        - name: MERGER_GITLAB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: instance-merger-bot-token
+              key: token
+        volumeMounts:
+        - name: config
+          mountPath: /config
+      volumes:
+      - name: config
+        configMap:
+          name: merge-config

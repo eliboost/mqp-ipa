@@ -1,0 +1,5 @@
+{
+  "*.ts": ["prettier --config .prettierrc --write"],
+  "*.html": ["prettier --config .prettierrc --write"],
+  "*.scss": "prettier --config .prettierrc --write"
+}

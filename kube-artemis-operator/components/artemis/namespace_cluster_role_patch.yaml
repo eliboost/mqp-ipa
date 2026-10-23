@@ -1,0 +1,5 @@
+- op: replace
+  path: /subjects/0/namespace
+  value: kube-artemis-activemq
+- op: remove
+  path: /metadata/namespace

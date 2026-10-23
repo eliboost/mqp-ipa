@@ -1,0 +1,94 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>middleware/buildenv/renovate-presets:go",
+    "local>middleware/buildenv/renovate-presets:k8s-deployment"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kustomization.yaml/"
+      ],
+      "description": "Rule to match remote loaded CRD definitions",
+      "matchStrings": [
+        "https://gitlab.pnet.ch/(?<depName>.*/.*?)/-/raw/(?<currentValue>.*?)/.*"
+      ],
+      "datasourceTemplate": "gitlab-tags"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kustomization.yaml/"
+      ],
+      "description": "Rule to match custom init image version",
+      "depNameTemplate": "middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image",
+      "matchStrings": [
+        "artemis-custom-init-image:(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kustomization.yaml/"
+      ],
+      "description": "Rule to match artemis cloud image version",
+      "depNameTemplate": "middleware-docker.repo.pnet.ch/arkmq-org/activemq-artemis-broker-kubernetes",
+      "matchStrings": [
+        "activemq-artemis-broker-kubernetes:artemis.(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Disable Automerge",
+      "matchManagers": [
+        "kustomize",
+        "kubernetes"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "wf::Blocked"
+      ]
+    },
+    {
+      "description": "Extract artemis cloud version",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchDepNames": [
+        "middleware-docker.repo.pnet.ch/arkmq-org/activemq-artemis-broker-kubernetes"
+      ],
+      "extractVersion": "artemis.(?<version>\\d+\\.\\d+\\.\\d+)$"
+    },
+    {
+      "description": "Group definition for artemis version updates",
+      "groupName": "artemis-version",
+      "matchDepNames": [
+        "middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image",
+        "middleware-docker.repo.pnet.ch/arkmq-org/activemq-artemis-broker-kubernetes"
+      ],
+      "branchPrefix": "",
+      "additionalBranchPrefix": "{{parentDir}}-",
+      "automerge": false,
+      "addLabels": [
+        "wf::Blocked"
+      ]
+    },
+    {
+      "description": "Group definition for operator version updates",
+      "groupName": "pf-activemq-operator-version",
+      "branchPrefix": "",
+      "additionalBranchPrefix": "{{parentDir}}-",
+      "automerge": false,
+      "addLabels": [
+        "wf::Blocked"
+      ],
+      "matchPackageNames": [
+        "/pf-activemq-operator/"
+      ]
+    }
+  ]
+}

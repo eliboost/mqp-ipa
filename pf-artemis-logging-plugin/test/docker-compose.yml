@@ -1,0 +1,18 @@
+---
+services:
+  activemq-artemis:
+    build:
+      context: ./..
+      dockerfile: Dockerfile
+    hostname: activemq-artemis
+    container_name: activemq-artemis
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8161" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    ports:
+      - "8161:8161"
+    environment:
+      ARTEMIS_USER: myuser
+      ARTEMIS_PASSWORD: mypassword

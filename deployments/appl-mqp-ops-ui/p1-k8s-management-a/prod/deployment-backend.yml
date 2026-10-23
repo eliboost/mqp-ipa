@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqp-ops-ui-backend-deployment
+  labels:
+    appl: mqp-ops-ui-backend
+spec:
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      appl: mqp-ops-ui-backend
+  template:
+    metadata:
+      annotations:
+        collectord.io/output: "splunk"
+        collectord.io/logs-index: "midwprod"
+      labels:
+        appl: mqp-ops-ui-backend
+    spec:
+      containers:
+        - name: backend
+          image: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/backend:0.0.0
+          imagePullPolicy: Always
+          ports:
+            - name: "http"
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /mqp-ops-ui/actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /mqp-ops-ui/actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /mqp-ops-ui/actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            periodSeconds: 10
+          envFrom:
+            - secretRef:
+                name: backend                
+          resources:
+            limits:
+              memory: 1Gi
+            requests:
+              memory: 512Mi
+          volumeMounts:
+            - mountPath: /opt/midw/trusts/aplat
+              name: aplat-trust-and-certs
+              readOnly: true
+            - mountPath: /opt/midw/trusts/pki-all
+              name: pki-all-store
+              readOnly: true
+            - mountPath: /etc/secrets
+              name: aplat-cookie-secret
+              readOnly: true
+            - mountPath: /etc/secrets/mqp
+              name: keystore-mqp
+              readOnly: true
+            - name: mqp-ops-ui-backend-config-map
+              mountPath: /usr/share/mqp-ops-ui/config
+              readOnly: true
+            - mountPath: /tmp/mqp-ops-ui-uploads
+              name: uploads
+      volumes:
+        - name: aplat-trust-and-certs
+          secret:
+            defaultMode: 420
+            secretName: ces-data-p1-shared-aplat-prod-store
+        - name: pki-all-store
+          secret:
+            defaultMode: 420
+            secretName: ces-data-p1-shared-pki-all-store
+        - name: aplat-cookie-secret
+          secret:
+            defaultMode: 420
+            secretName: aplat-cookie-secret
+        - name: mqp-ops-ui-backend-config-map
+          configMap:
+            name: mqp-ops-ui-backend-config-map
+        - name: vault-secrets
+          secret:
+            secretName: backend
+        - name: keystore-mqp
+          secret:
+            secretName: ces-data-p1-mqp-ops-ui-store
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: mqp-ops-ui-upload-pvc

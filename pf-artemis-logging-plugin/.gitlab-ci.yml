@@ -1,0 +1,28 @@
+include:
+  - project: "middleware/pipeline-includes/java"
+    ref: v13.0.27
+    file:
+      - ".gitlab-ci-include-java.yml"
+
+# Disable sonarcube analysis job from pipeline-includes
+sonarqube-analysis:
+  rules:
+    - when: never
+
+test:
+  variables:
+    TESTCONTAINERS_RYUK_CONNECTION_TIMEOUT: 5m
+    TESTCONTAINERS_RYUK_RECONNECTION_TIMEOUT: 3m
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/go:5.8.0
+  tags:
+    - docker
+    - linux
+  stage: test
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: always
+  script:
+    - export HOST_IP=$(docker network inspect bridge -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}')
+    - echo HOST_IP
+    - go test --timeout 10m -v ./...

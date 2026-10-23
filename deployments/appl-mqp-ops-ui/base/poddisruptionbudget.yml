@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mqp-ops-ui-pdb
+  labels:
+    app: mqp-ops-ui-appl
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: mqp-ops-ui-appl

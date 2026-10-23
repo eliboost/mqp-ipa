@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: artemis-monitor
+  labels:
+    app: artemis-monitor
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: artemis-monitor
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/scheme: "http"
+        prometheus.io/scrape: "true"
+      labels:
+        app: artemis-monitor
+    spec:
+      containers:
+        - image: middleware-docker-local.repo.pnet.ch/pf/middleware/activemq/artemis-monitor:0.1.202610150527
+          name: artemis-monitor
+          env:
+            - name: LOGGING_LEVEL_CH_POSTFINANCE_ACTIVEMQ
+              value: Info
+            - name: APPLICATION_DESTINATION
+              value: mqp.example.TEST 
+            - name: KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ces-data-p1-identity-mqp-e2e-p1-store
+                  key: password.raw
+            - name: SPRING_ARTEMIS_BROKER_URL
+              value: (tcp://p1-mqp-e2e-a-ssl-0.appl-mqp-e2e-p1.p1-pcilight-a.pnet.ch:7002,tcp://p1-mqp-e2e-a-ssl-1.appl-mqp-e2e-p1.p1-pcilight-a.pnet.ch:7002)?sslEnabled=true&trustStoreType=JKS&trustStorePath=/etc/pki-all/truststore.jks&keyStorePath=/etc/certs/node_keystore_nocrypt.pem&keyStoreType=PEM&useTopologyForLoadBalancing=false
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 1000m
+            requests:
+              memory: 256Mi
+              cpu: 10m
+              ephemeral-storage: 50Mi
+          ports:
+            - containerPort: 8080
+              name: artemis-monitor
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            periodSeconds: 5
+          volumeMounts:
+            - name: pki-all
+              mountPath: "/etc/pki-all"
+            - name: keystore
+              mountPath: "/etc/certs"
+      volumes:
+        - name: pki-all
+          secret:
+            secretName: ces-data-p1-shared-pki-all-store
+        - name: keystore
+          secret:
+            secretName: ces-data-p1-identity-mqp-e2e-p1-store

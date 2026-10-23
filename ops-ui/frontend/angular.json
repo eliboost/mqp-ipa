@@ -1,0 +1,206 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "mqp-ops-ui": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        },
+        "@schematics/angular:application": {
+          "strict": true
+        }
+      },
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "dist",
+            "index": "src/index.html",
+            "main": "src/main.ts",
+            "polyfills": "src/polyfills.ts",
+            "tsConfig": "tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "src/assets",
+              {
+                "glob": "**/*.svg",
+                "input": "node_modules/@postfinance/component-library/dist/pf-component-library/pf-icon-svg",
+                "output": "pf-icon-svg/"
+              },
+              {
+                "glob": "**/*.png",
+                "input": "node_modules/@postfinance/component-library/dist/pf-component-library/favicons",
+                "output": "favicons/"
+              },
+              {
+                "glob": "**/*.*",
+                "input": "node_modules/@postfinance/component-library/dist/pf-component-library/assets",
+                "output": "assets/"
+              },
+              {
+                "glob": "**/*.{woff,woff2}",
+                "input": "node_modules/@postfinance/component-library/dist/pf-component-library/fonts",
+                "output": "fonts/"
+              },
+              {
+                "glob": "**/*.*",
+                "input": "../../assets/comp-screenshots",
+                "output": "assets/comp-screenshots/"
+              }
+            ],
+            "styles": [
+              "node_modules/@postfinance/component-library/dist/pf-component-library/pf-component-library.css",
+              "src/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "local-with-auth": {
+              "assets": [
+                "src/assets",
+                {
+                  "glob": "**/*.svg",
+                  "input": "node_modules/@postfinance/component-library/dist/pf-component-library/pf-icon-svg",
+                  "output": "pf-icon-svg/"
+                },
+                {
+                  "glob": "**/*.png",
+                  "input": "node_modules/@postfinance/component-library/dist/pf-component-library/favicons",
+                  "output": "favicons/"
+                },
+                {
+                  "glob": "**/*.*",
+                  "input": "node_modules/@postfinance/component-library/dist/pf-component-library/assets",
+                  "output": "assets/"
+                },
+                {
+                  "glob": "**/*.{woff,woff2}",
+                  "input": "node_modules/@postfinance/component-library/dist/pf-component-library/fonts",
+                  "output": "fonts/"
+                },
+                {
+                  "glob": "**/*.*",
+                  "input": "../../assets/comp-screenshots",
+                  "output": "assets/comp-screenshots/"
+                },
+                {
+                  "input": "src/assets/config/local-with-auth",
+                  "output": "assets/config/",
+                  "glob": "app-config.json"
+                }
+              ]
+            },
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "2mb",
+                  "maximumError": "4mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true,
+              "baseHref": "/mqp-ops-ui/"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "mqp-ops-ui:build:production"
+            },
+            "development": {
+              "buildTarget": "mqp-ops-ui:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "mqp-ops-ui:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "src/test.ts",
+            "polyfills": "src/polyfills.ts",
+            "tsConfig": "tsconfig.spec.json",
+            "karmaConfig": "karma.conf.js",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "src/assets",
+              {
+                "glob": "**/*.svg",
+                "input": "node_modules/@postfinance/component-library/dist/pf-component-library/pf-icon-svg",
+                "output": "pf-icon-svg/"
+              },
+              {
+                "glob": "**/*.png",
+                "input": "node_modules/@postfinance/component-library/dist/pf-component-library/favicons",
+                "output": "favicons/"
+              },
+              {
+                "glob": "**/*.{woff,woff2}",
+                "input": "node_modules/@postfinance/component-library/dist/pf-component-library/fonts",
+                "output": "fonts/"
+              },
+              {
+                "glob": "**/*.*",
+                "input": "../../assets/comp-screenshots",
+                "output": "assets/comp-screenshots/"
+              }
+            ],
+            "styles": [
+              "node_modules/@postfinance/component-library/dist/pf-component-library/pf-component-library.css",
+              "src/styles.scss"
+            ],
+            "scripts": []
+          }
+        },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "schematicCollections": ["@angular-eslint/schematics"],
+    "analytics": false
+  },
+  "schematics": {
+    "@angular-eslint/schematics:application": {
+      "setParserOptionsProject": true
+    },
+    "@angular-eslint/schematics:library": {
+      "setParserOptionsProject": true
+    }
+  }
+}

@@ -1,0 +1,29 @@
+# example config file
+#
+target-branch: main
+no-auto-close-label: no-auto-close
+# filepath only allows matching files to be merged
+file-path:
+  valid: instance\/[etp]1-k8s-[a-z]+.*-[a-z]\/[a-z0-9-]+\.yaml
+# deactivation is a policy to disable merge requests within a time interval.
+# If path is not empty, it is only active for files that match the regular expression.
+# The below is an example for a frozen zone deactivation.
+deactivation:
+  path: instance\/p1-k8s-[a-z]+.*
+  start: "2023-11-20"
+  end: "2024-01-03"
+# render adds the possibility to add additional merge request note info.
+renderer:
+  additional-info:
+    - reason: PathViolation
+      message: This message is added to each PathViolation error.
+    # also possible to add here additional info for custom checks
+    - reason: InvalidNamespace
+      message: Add here additional information
+  success: This message is added at the bottom of each merge request note that was automerged.
+  failure: This message is added at the bottom of each merge request note that was not automerged.
+  failure-close: |
+    This message is added at the bottom of each merge request note that was not automerged and closed. You
+    can can add the ~"no-auto-close" label and reopen the MR.
+namespace:
+  dummy: foobar

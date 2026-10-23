@@ -1,0 +1,46 @@
+HELP.md
+target/
+logs/
+.mvn/*
+/*/.mvn/*
+!**/src/main/**
+!**/src/test/**
+.DS_Store
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea/*
+*.iws
+*.iml
+*.ipr
+!.idea/copyright
+!.idea/runConfigurations
+!.idea/codeStyles
+!.idea/dataSources.xml
+!.idea/sonarlint.xml
+/*/.idea/*
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+### VS Code ###
+.vscode/
+
+### Node.js ###
+**/node_modules/**
+**/node/**
+**/ngapp/dist/**
+/*/.nx/*

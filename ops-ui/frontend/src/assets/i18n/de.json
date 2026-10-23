@@ -1,0 +1,232 @@
+{
+  "GENERAL": {
+    "APP_TITLE": "MQP Betrieb UI"
+  },
+  "INSTANCES": {
+    "ADD_MESSAGE_FORM": {
+      "BUTTON_CANCEL": "Abbrechen",
+      "BUTTON_EMPTY_FORM": "Formular leeren",
+      "BUTTON_SUBMIT": "Absenden",
+      "HEADER_COMMPATTERN": "Header_commPattern",
+      "HEADER_MANDANTID": "Header_mandantId",
+      "HEADER_MESSAGEID": "Header_messageId",
+      "HEADER_MESSAGETYPE": "Header_messageType",
+      "HEADER_PRIORITY": "Header_priority",
+      "HEADER_RECEIVER": "Header_receiver",
+      "HEADER_SENDER": "Header_sender",
+      "HEADER_SENDERPLATTFORM": "Header_senderPlattform",
+      "INVALID_MESSAGES": {
+        "GENERAL": "Feld ist invalid.",
+        "MAX_LENGTH": "Feld enthält zu viele Zeichen.",
+        "PATTERN": "Feld enthält ungültige Zeichen.",
+        "REQUIRED": "Pflichtfeld"
+      },
+      "MESSAGE_CONTENT": "Message-Inhalt",
+      "TITLE": "Eine Meldung in die Queue {{ queue }} hinzufügen",
+      "BULK_IMPORT_FILE_SIZE": "Maximale Dateigröße: 500MB",
+      "BULK_IMPORT_READY_TO_IMPORT": "{{ count }} Meldung(en) bereit zum Import",
+      "BULK_IMPORT_PROGRESS": "Meldungen werden importiert... erfolgreich: {{done}}, total: {{total}}, fehlgeschlagen: {{failed}}"
+    },
+    "DIALOGS": {
+      "DELETE_MESSAGES": {
+        "MESSAGE": "Sollen die Meldungen mit den MessageIDs {{ messages }} wirklich gelöscht werden?",
+        "BLOCK_SIZE": "Blockgrösse",
+        "BLOCK_SIZE_ERROR": "Blockgrösse muss mindestens 1 sein",
+        "BLOCK_SIZE_HINT": "Empfohlen: {{ recommended }}",
+        "BUTTON_CANCEL": "Abbrechen",
+        "BUTTON_DELETE": "Löschen",
+        "QUEUE": "Queue",
+        "TITLE": "Meldungen löschen",
+        "MESSAGEIDS": "MessageIDs",
+        "ALL_MESSAGES_LABEL": "Alle Meldungen werden gelöscht"
+      },
+      "DELETE_MESSAGES_CONFIRM": {
+        "MESSAGE": "Sollen die Meldungen mit den MessageIDs {{ messages }} wirklich gelöscht werden?",
+        "TITLE": "Meldungen löschen"
+      },
+      "DISABLE_QUEUE": {
+        "MESSAGE": "Sollen die Queues {{ queues }} wirklich deaktiviert werden?",
+        "TITLE": "Queues deaktivieren"
+      },
+      "ENABLE_QUEUE": {
+        "MESSAGE": "Sollen die Queues {{ queues }} wirklich aktiviert werden?",
+        "TITLE": "Queues aktivieren"
+      },
+      "HELP_QUEUE_OPERATIONS": {
+        "TITLE": "Hilfestellung zu den verschiedenen Operationen, die auf einer Queue ausgeführt werden können."
+      },
+      "MESSAGE_BODY": {
+        "TITLE": "Meldungs-Inhalt der Meldung {{ message }}"
+      },
+      "MESSAGE_DETAILS": {
+        "HEADERS": {
+          "DURABLE": "durable",
+          "EXPIRATION": "expiration",
+          "LARGE_MESSAGE": "largeMessage",
+          "MESSAGE_ID": "messageID",
+          "PERSISTENT_SIZE": "persistentSize",
+          "PRIORITY": "priority",
+          "PROTOCOL": "protocol",
+          "REDELIVERED": "redelivered",
+          "TIMESTAMP": "timestamp",
+          "TIMESTAMP_FORMATTED": "timestamp (formatted)",
+          "TYPE": "type"
+        },
+        "PROPERTIES": {
+          "COMMPATTERN": "Header_commPattern",
+          "MANDANTID": "Header_mandantId",
+          "MESSAGEID": "Header_messageId",
+          "MESSAGETYPE": "Header_messageType",
+          "ORIGINAL_QUEUE": "_AMQ_ORIG_QUEUE",
+          "PRIORITY": "Header_priority",
+          "RECEIVER": "Header_receiver",
+          "SENDER": "Header_sender",
+          "SENDER_PLATTFORM": "Header_senderPlattform"
+        },
+        "SUBTITLE_HEADERS": "Headers",
+        "SUBTITLE_PROPERTIES": "Properties",
+        "TITLE": "Meldungs-Details der Meldung {{ message }}"
+      },
+      "MOVE_MESSAGES": {
+        "ALL_MESSAGES_LABEL": "Alle Meldungen werden verschoben",
+        "BLOCK_SIZE": "Blockgrösse",
+        "BLOCK_SIZE_ERROR": "Blockgrösse muss mindestens 1 sein",
+        "BLOCK_SIZE_HINT": "Empfohlen: {{ recommended }}",
+        "BUTTON_CANCEL": "Abbrechen",
+        "BUTTON_MOVE": "Verschieben",
+        "CURRENT_QUEUE": "Aktuelle Queue",
+        "MESSAGEIDS": "MessageIDs",
+        "TARGET_QUEUE": "Ziel-Queue",
+        "TITLE": "Meldungen verschieben"
+      },
+      "MOVE_MESSAGES_CONFIRM": {
+        "MESSAGE": "Sollen die Meldungen mit den MessageIDs {{ messages }} wirklich in die Queue {{ targetQueue }} verschoben werden?",
+        "TITLE": "Meldungen verschieben"
+      },
+      "PAUSE_QUEUE": {
+        "MESSAGE": "Sollen die Queues {{ queues }} wirklich pausiert werden?",
+        "TITLE": "Queues pausieren"
+      },
+      "RECOVER_MESSAGES_CONFIRM": {
+        "MESSAGE": "Sollen die Meldungen mit den MessageIDs {{ messages }} wirklich recovered werden?",
+        "TITLE": "Meldungen recovern"
+      },
+      "RESUME_QUEUE": {
+        "MESSAGE": "Sollen die Queues {{ queues }} wirklich fortgesetzt werden?",
+        "TITLE": "Queues fortsetzen"
+      },
+      "EXPORT_MESSAGE_CONFIRM": {
+        "MESSAGE": "Sollen die Meldungen mit den MessageIDs {{ messages }} wirklich exportiert werden?",
+        "TITLE": "Meldungen exportieren",
+        "NO_NEW_MESSAGES_EXPORT": "Meldungen welche nach dem Start des Exports in die Queue produziert werden, werden nicht exportiert."
+      }
+    },
+    "INSTANCES_TABLE": {
+      "COLUMN_TITLE_INSTANCE": "Instanz",
+      "COLUMN_TITLE_QUEUES": "Queues",
+      "COLUMN_TITLE_STATE": "Status",
+      "STATE_CHIP_OFFLINE": "Offline",
+      "STATE_CHIP_ONLINE": "Online"
+    },
+    "MAIN_TITLE": "Instanzen",
+    "MESSAGES_TABLE": {
+      "BUTTON_DELETE": "Löschen",
+      "BUTTON_DETAILS": "Details",
+      "BUTTON_DETAILS_TOOLTIP": "Details einer Meldung anzeigen",
+      "BUTTON_MESSAGE_BODY": "Inhalt",
+      "BUTTON_MESSAGE_BODY_TOOLTIP": "Inhalt einer Meldung anzeigen",
+      "BUTTON_MOVE": "Verschieben",
+      "BUTTON_RECOVER": "Recovern",
+      "COLUMN_TITLE_MESSAGEID": "messageId",
+      "COLUMN_TITLE_HEADERMESSAGEID": "Header_messageId",
+      "COLUMN_TITLE_MESSAGETYPE": "Header_messageType",
+      "COLUMN_TITLE_ORIGINAL_QUEUE": "_AMQ_ORIG_QUEUE",
+      "COLUMN_TITLE_RECEIVER": "Header_receiver",
+      "COLUMN_TITLE_SENDER": "Header_sender",
+      "COLUMN_TITLE_TIMESTAMP": "timestamp (formatted)",
+      "TITLE_REPLICA": "Replikat"
+    },
+    "QUEUES_TABLE": {
+      "BUTTON_ADD_MESSAGE": "Meldung hinzufügen",
+      "BUTTON_ADD_MESSAGE_TOOLTIP": "Eine Meldung in die Queue senden",
+      "BUTTON_DISABLE": "Deaktivieren",
+      "BUTTON_DISABLE_EXPLANATION": "Wenn eine Queue deaktiviert ist, können keine Meldungen mehr in diese Queue geschickt werden.",
+      "BUTTON_ENABLE": "Aktivieren",
+      "BUTTON_ENABLE_EXPLANATION": "Wenn eine Queue aktiviert ist, können Meldungen in diese Queue geschickt werden.",
+      "BUTTON_HELP": "Erklärung/Hilfe",
+      "BUTTON_PAUSE": "Pausieren",
+      "BUTTON_PAUSE_EXPLANATION": "Wenn eine Queue pausiert ist, können Meldungen empfangen werden, aber sie werden nicht ausgeliefert.",
+      "BUTTON_RESUME": "Fortsetzen",
+      "BUTTON_RESUME_EXPLANATION": "Wenn eine Queue fortgesetzt wird, werden empfangene Meldungen wieder ausgeliefert.",
+      "BUTTON_SHOW_MESSAGES": "Meldungen",
+      "BUTTON_SHOW_MESSAGES_TOOLTIP": "Meldungen einer Queue anzeigen",
+      "COLUMN_TITLE_ENABLED": "Aktiviert",
+      "COLUMN_TITLE_ENABLED_NO": "Nein",
+      "COLUMN_TITLE_ENABLED_YES": "Ja",
+      "COLUMN_TITLE_NUMBER_OF_CONSUMERS": "Anzahl Consumer",
+      "COLUMN_TITLE_NUMBER_OF_MESSAGES": "Anzahl Meldungen in der Queue",
+      "COLUMN_TITLE_PAUSED": "Pausiert",
+      "COLUMN_TITLE_PAUSED_NO": "Nein",
+      "COLUMN_TITLE_PAUSED_YES": "Ja",
+      "COLUMN_TITLE_QUEUE": "Queue",
+      "COLUMN_TITLE_REPLICA": "Replikat"
+    },
+    "SEARCH_SINGLE_MESSAGE": {
+      "HEADER_MESSAGE_ID": "Header_messageId",
+      "START_SEARCH_BUTTON": "Suchen"
+    },
+    "SHOW_MESSAGES": {
+      "ALL_MESSAGES": "Alle Meldungen",
+      "SELECT_ALL_LINK": "Alle {{ count }} Meldungen auswählen",
+      "SELECTED_COUNT": "Ausgewählte Meldungen: {{ selected }} von {{ total }}",
+      "UNDO_SELECT_ALL_LINK": "Rückgängig"
+    },
+    "STATUS_BOXES": {
+      "STREAMING_ACTION": {
+        "PROGRESS": "Fortschritt: {{ processed }} / {{ total }}"
+      },
+      "EXPORT_MESSAGES": {
+        "ERROR": "Die ausgewählten Meldungen konnten nicht exportiert werden",
+        "SUCCESS": "Die ausgewählten Meldungen wurden erfolgreich exportiert",
+        "PROGRESS": "Meldungen werden exportiert... {{processed}} / {{total}}"
+      },
+      "ADD_MESSAGE": {
+        "ERROR": "Meldung konnte nicht gesendet werden.",
+        "SUCCESS": "Meldung erfolgreich gesendet.",
+        "BULK_IMPORT_ERROR": "Import fehlgeschlagen. Bitte überprüfen Sie die hochgeladene Datei und versuchen Sie es erneut.",
+        "BULK_IMPORT_SUCCESS": "Import erfolgreich abgeschlossen. Alle Meldungen wurden erfolgreich gesendet. Fehlerhafte Nachrichten sind in der heruntergeladenen Datei enthalten."
+      },
+      "DELETE_MESSAGES": {
+        "ERROR": "Es konnte keine der ausgewählten Meldungen gelöscht werden.",
+        "SUCCESS": "Alle ausgewählten Meldungen konnten erfolgreich gelöscht werden.",
+        "WARNING": "Nur ein Teil der ausgewählten Meldungen konnte erfolgreich gelöscht werden."
+      },
+      "INSTANCE_OFFLINE": "Die Instanz {{ instance }} ist zurzeit nicht erreichbar und daher können keine Details angezeigt werden.",
+      "MESSAGE_BODY": {
+        "INFO": "Es werden maximal so viele Bytes einer Message angezeigt wie in management-message-attribute-size-limit definiert ist (default: 256 Bytes)."
+      },
+      "MOVE_MESSAGES": {
+        "ERROR": "Es konnte keine der ausgewählten Meldungen verschoben werden.",
+        "SUCCESS": "Alle ausgewählten Meldungen konnten erfolgreich verschoben werden.",
+        "WARNING": "Nur ein Teil der ausgewählten Meldungen konnte erfolgreich verschoben werden."
+      },
+      "NO_INSTANCES_VISIBLE": "Es sind keine Instanzen verfügbar. Entweder hast du keine entsprechenden IDM-Rolle(n) oder es liegt ein anderes technisches Problem vor.",
+      "NO_MESSAGES_FOUND": "Für diese Queue konnten keine Meldungen gefunden werden.",
+      "RECOVER_MESSAGES": {
+        "ERROR": "Es wurde keine Meldung recovered. Meldungen ohne Ursprungs-Queue müssen verschoben werden. Ein Recovery funktioniert ohne Ursprungs-Queue nicht.",
+        "SUCCESS": "Alle Meldungen konnten erfolgreich recovered werden.",
+        "WARNING": "Nur ein Teil der Meldungen konnte erfolgreich recovered werden. Messages ohne Ursprungs-Queue müssen verschoben werden. Ein Recovery funktioniert ohne Ursprungs-Queue nicht."
+      },
+      "SEARCH_SINGLE_MESSAGE": {
+        "ERROR": "Keine Meldung mit dieser Header_messageId gefunden.",
+        "SEARCH_INFO": "Suche nach einer einzigen Meldung mittels Header_messageId"
+      }
+    }
+  },
+  "MENU": {
+    "INSTANCES": "Instanzen"
+  },
+  "USER_MENU": {
+    "LOGOUT": "Abmelden"
+  }
+}

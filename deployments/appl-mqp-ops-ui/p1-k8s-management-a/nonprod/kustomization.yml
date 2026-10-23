@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: appl-mqp-ops-ui-nonprod-p1
+replicas:
+- count: 1
+  name: mqp-ops-ui-backend-deployment
+- count: 1
+  name: mqp-ops-ui-frontend-deployment
+images:
+- name: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/backend
+  newTag: 1.5.3
+- name: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/frontend
+  newTag: 1.5.3
+- name: middleware-docker.repo.pnet.ch/alpine/k8s
+  newTag: 1.37.1
+- name: postfinance/vault-kubernetes-authenticator
+  newTag: 0.4.3
+- name: postfinance/vault-kubernetes-synchronizer
+  newTag: 0.4.3
+resources:
+- ../../base
+- config-frontend.yml
+- deployment-backend.yml
+- deployment-frontend.yml
+- ingress.yml
+- httproute.yml
+- external-secret-backend.yaml
+- pvc-uploads.yml
+configMapGenerator:
+- files:
+  - application.yml
+  name: mqp-ops-ui-backend-config-map
+  options:
+    labels:
+      appl: mqp-ops-ui-appl
+patches:
+- path: cronjob-patch.yml
+- path: job-aplat-cookie-secret-creator-patch.yml

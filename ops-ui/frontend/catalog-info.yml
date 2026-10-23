@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: mqp-ops-ui
+  description: 'MQP Betrieb UI'
+  tags:
+    - activemq
+  links:
+    - url: https://gitlab.pnet.ch/open-ui/components/postfinance-angular-skeleton/-/blob/master/README.md
+      title: Setup
+      icon: docs
+      type: docs
+    - url: https://teams.microsoft.com/l/channel/19%3ac61978fa590b4fdaad4a73047b8fc5cc%40thread.tacv2/OUI%2520WebComponents%2520Community?groupId=209f33fd-87d6-435a-b4a8-fe3a6f242094&tenantId=3ae7c479-0cf1-47f4-8f84-929f364eff67
+      title: Support
+      icon: chat
+      type: support
+    - url: https://gitlab.pnet.ch/open-ui/components/postfinance-angular-skeleton
+      title: Source
+      icon: techdocs
+      type: source
+spec:
+  type: npm-package
+  lifecycle: production
+  owner: OPENUI
+  system: gitlab

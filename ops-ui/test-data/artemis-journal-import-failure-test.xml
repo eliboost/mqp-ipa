@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Artemis Journal Import - Failure Test File
+  ============================================
+  5 messages, 3 will fail, 2 will succeed → expected HTTP 207
+
+  Message 0 (index 0) — SUCCEEDS  : valid text message
+  Message 1 (index 1) — FAILS     : long property with non-numeric value → NumberFormatException in setTypedProperty()
+  Message 2 (index 2) — FAILS     : invalid Base64 body → IllegalArgumentException in applyToClientMessage()
+  Message 3 (index 3) — FAILS     : bytes property with invalid Base64 value → IllegalArgumentException in setTypedProperty()
+  Message 4 (index 4) — SUCCEEDS  : valid bytes message (confirms processing continues after failures)
+-->
+<activemq-journal>
+  <messages>
+
+    <!-- MESSAGE 0: valid — should succeed -->
+    <message
+      id="1001"
+      priority="4"
+      expiration="0"
+      timestamp="1751328000000"
+      type="bytes"
+    >
+      <properties>
+        <property name="Header_messageId" value="MSG-OK-001" type="string"/>
+        <property name="Header_sender"    value="TEST-SENDER" type="string"/>
+        <property name="retryCount"       value="0"          type="integer"/>
+      </properties>
+      <queues>
+        <queue name="TEST.QUEUE"/>
+      </queues>
+      <!-- "Hello from message 0" as raw UTF-8 bytes, Base64-encoded -->
+      <body><![CDATA[SGVsbG8gZnJvbSBtZXNzYWdlIDA=]]></body>
+    </message>
+
+    <!-- MESSAGE 1: FAILS — long property has non-numeric value → NumberFormatException -->
+    <message
+      id="1002"
+      priority="4"
+      expiration="0"
+      timestamp="1751328000001"
+      type="bytes"
+    >
+      <properties>
+        <property name="Header_messageId"  value="MSG-FAIL-001"  type="string"/>
+        <!-- "not-a-number" cannot be parsed as long → NumberFormatException -->
+        <property name="correlationId"     value="not-a-number"  type="long"/>
+      </properties>
+      <queues>
+        <queue name="TEST.QUEUE"/>
+      </queues>
+      <body><![CDATA[SGVsbG8gZnJvbSBtZXNzYWdlIDE=]]></body>
+    </message>
+
+    <!-- MESSAGE 2: FAILS — body is not valid Base64 → IllegalArgumentException -->
+    <message
+      id="1003"
+      priority="4"
+      expiration="0"
+      timestamp="1751328000002"
+      type="bytes"
+    >
+      <properties>
+        <property name="Header_messageId" value="MSG-FAIL-002" type="string"/>
+      </properties>
+      <queues>
+        <queue name="TEST.QUEUE"/>
+      </queues>
+      <!-- "!!INVALID BASE64!!" contains characters outside the Base64 alphabet -->
+      <body><![CDATA[!!INVALID BASE64 BODY — NOT DECODABLE!!]]></body>
+    </message>
+
+    <!-- MESSAGE 3: FAILS — bytes property has invalid Base64 value → IllegalArgumentException -->
+    <message
+      id="1004"
+      priority="4"
+      expiration="0"
+      timestamp="1751328000003"
+      type="bytes"
+    >
+      <properties>
+        <property name="Header_messageId" value="MSG-FAIL-003"       type="string"/>
+        <!-- valid Base64 for the body, but the bytes property value is not valid Base64 -->
+        <property name="rawHeader"        value="###NOT-BASE64###"   type="bytes"/>
+      </properties>
+      <queues>
+        <queue name="TEST.QUEUE"/>
+      </queues>
+      <body><![CDATA[SGVsbG8gZnJvbSBtZXNzYWdlIDM=]]></body>
+    </message>
+
+    <!-- MESSAGE 4: valid — should succeed, proves processing continues after failures -->
+    <message
+      id="1005"
+      priority="4"
+      expiration="0"
+      timestamp="1751328000004"
+      type="bytes"
+      user-id="550e8400-e29b-41d4-a716-446655440000"
+    >
+      <properties>
+        <property name="Header_messageId" value="MSG-OK-002"   type="string"/>
+        <property name="Header_sender"    value="TEST-SENDER"  type="string"/>
+        <property name="active"           value="true"         type="boolean"/>
+        <property name="score"            value="3.14"         type="double"/>
+        <property name="seqNum"           value="42"           type="long"/>
+      </properties>
+      <queues>
+        <queue name="TEST.QUEUE"/>
+      </queues>
+      <!-- "Hello from message 4" as raw UTF-8 bytes, Base64-encoded -->
+      <body><![CDATA[SGVsbG8gZnJvbSBtZXNzYWdlIDQ=]]></body>
+    </message>
+
+  </messages>
+</activemq-journal>

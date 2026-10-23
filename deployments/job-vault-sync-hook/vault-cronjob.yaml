@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  generateName: vault-sync-default-
+  name: vault-sync-cron
+  labels:
+    job: vault-sync-cron
+spec:
+  timeZone: "Europe/Zurich"
+  schedule: "10 8 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - env:
+                - name: SECRET_PREFIX
+                  value: v3t-
+                - name: VAULT_ADDR
+                  value: https://vault.pnet.ch:7015
+                - name: VAULT_CACERT
+                  value: /etc/pki/vault/truststore.pem
+                - name: VAULT_TOKEN_PATH
+                  value: /home/vault/.vault-token
+              image: postfinance/vault-kubernetes-synchronizer:latest
+              imagePullPolicy: Always
+              name: vault-sync-cron
+              resources: {}
+              volumeMounts:
+                - mountPath: /home/vault
+                  name: vault-token
+                - mountPath: /etc/pki/vault
+                  name: truststore
+                  readOnly: true
+          initContainers:
+            - env:
+                - name: VAULT_ADDR
+                  value: https://vault.pnet.ch:7015
+                - name: VAULT_CACERT
+                  value: /etc/pki/vault/truststore.pem
+                - name: VAULT_TOKEN_PATH
+                  value: /home/vault/.vault-token
+              image: postfinance/vault-kubernetes-authenticator:latest
+              imagePullPolicy: Always
+              name: vault-auth
+              resources: {}
+              volumeMounts:
+                - mountPath: /home/vault
+                  name: vault-token
+                - mountPath: /etc/pki/vault
+                  name: truststore
+                  readOnly: true
+          restartPolicy: Never
+          serviceAccountName: vault-auth
+          volumes:
+            - emptyDir:
+                medium: Memory
+              name: vault-token
+            - name: truststore
+              secret:
+                items:
+                  - key: truststore.pem
+                    path: truststore.pem
+                secretName: ces-data-p1-shared-pki-all-store
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 900 # 15 min

@@ -1,0 +1,8 @@
+resources:
+  - cronjob.yml
+  - job-aplat-cookie-secret-creator.yml
+  - poddisruptionbudget.yml
+  - role.yml
+  - rolebinding.yml
+  - service.yml
+  - serviceaccount.yml

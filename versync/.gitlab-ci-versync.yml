@@ -1,0 +1,5 @@
+include:
+  - project: middleware/pipeline-includes/pipelinekatalog
+    ref:  v5.3.11
+    file:
+      - go-projects.yml

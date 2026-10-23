@@ -1,0 +1,81 @@
+# https://developer.pnet.ch/docs/default/domain/aplat/security-services/providers/Spring/
+aplat:
+  security:
+    provider:
+      aplat-cookie-secret-path: '/etc/secrets/secret'
+      signer-truststore-file: '/keybox/aplat-trust/esproxysigner_truststore_keystore.jks'
+      signer-certificate-alias: 'esproxysigner'
+
+application:
+  aplat:
+    enabled: true
+  platform: E1
+  platformHasDefaultRole: false
+  jolokiaApiPort: 443
+  instance-fetcher:
+    configUrl: https://instances-activemq-e570aaba03ad4ec6d1682b187ed978b5006e55817ddd.pages.gitlab.pnet.ch/self-service-config-lab.yml
+    connectTimeoutMs: 5000
+    readTimeoutMs: 1000
+    maxRetries: 5
+    retryBackoffMs: 500
+  jms:
+    trustStorePath: /etc/secrets/mqp/truststore.jks
+    keyStorePath: /etc/secrets/mqp/node_keystore_nocrypt.pem
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,metrics,prometheus,env,hawtio,jolokia,refresh
+
+logging:
+  level:
+    # General logs from mqpopsui app
+    ch.post.pf.mqpopsui.general: DEBUG
+
+    # Audit logs from mqpopsui app
+    ch.post.pf.mqpopsui.audit: INFO
+
+    # All other logs
+    root: INFO
+
+    # Provider (ebenfalls das spring property spring.websecurity.debug auf true setzen)
+    ch.postfinance.aplat.security.providers: INFO
+    org.springframework.security: INFO
+
+    # Consumer
+    ch.post.pf.mw.fw.security.authentication: INFO
+    ch.postfinance.aplat.security.compauth: INFO
+
+server:
+  security:
+    user:
+      name: "dummy"
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        # Muss JSESSIONID sein um dasselbe Login-Verhalten wie auf T1 sicherzustellen. Siehe RETAINCOOKIES
+        # https://developer.pnet.ch/docs/default/Domain/aplat-proxies
+        name: JSESSIONID
+
+spring:
+  websecurity:
+    debug: true
+  profiles:
+    active: nonlocal
+  ssl:
+    bundle:
+      jks:
+        client-bundle:
+          keystore:
+            location: "file:/etc/secrets/mqp/truststore_keystore.jks"
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+      file-size-threshold: 1B
+      location: /tmp/mqp-ops-ui-uploads

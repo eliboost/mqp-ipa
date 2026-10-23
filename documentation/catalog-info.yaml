@@ -1,0 +1,35 @@
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  title: ActiveMQ
+  name: activemq
+  description: Apache ActiveMQ Artemis (MQP)
+  annotations:
+    backstage.io/techdocs-ref: dir:.
+    backstage.io/techdocs-artifactory-repository: middleware-techdocs-generic-local
+  links:
+    - url: https://activemq.pnet.ch
+      title: ActiveMQ Artemis (MQP)
+      icon: dashboard
+      type: guide
+    - url: https://activemq.pnet.ch/docs/
+      title: User Guide
+      icon: user
+      type: guide
+    - url: https://teams.microsoft.com/l/channel/19%3A60da932be53f4dbb81404cbd2d371d1a%40thread.tacv2/ActiveMQ%20Artemis%20Community?groupId=209f33fd-87d6-435a-b4a8-fe3a6f242094&tenantId=3ae7c479-0cf1-47f4-8f84-929f364eff67
+      title: Support
+      icon: help
+      type: support
+    - url: https://activemq.pnet.ch/blog/
+      title: ActiveMQ Blog/Info
+      type: news
+      icon: news
+    - url: https://gitlab.pnet.ch/activemq/instances
+      title: Self Service
+      icon: selfservice
+      type: self-service
+spec:
+  lifecycle: production
+  owner: dt-middleware
+  system: asmmw
+  type: documentation

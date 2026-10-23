@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqp-ops-ui-esproxy-deployment
+  labels:
+    appl: mqp-ops-ui-esproxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      appl: mqp-ops-ui-esproxy
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        appl: mqp-ops-ui-esproxy
+    spec:
+      containers:
+      - name: mqp-ops-ui-esproxy
+        image: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/esproxy:0.0.0
+        imagePullPolicy: Always
+        env:
+          - name: env
+            value: "e1"
+          - name: ESP_CONFIGFILE
+            value: "/appl/config/esproxy-config.xml"
+          - name: ESPROXY_HOST
+            value: "mqp-ops-ui-esproxy-svc.appl-mqp-ops-ui-e1.svc.cluster.local"
+          - name: PF_TC_DEV_ESPROXY_HOST
+            value: "mqp-ops-ui-esproxy-svc.appl-mqp-ops-ui-e1.svc.cluster.local"
+          - name: APLAT_ESPROXY_GUI_URL
+            value: https://mqp-ops-ui.e1-pfnet-a.pnet.ch
+          - name: JAVA_OPTS
+            value: "-XX:MaxRAMPercentage=75.0 -XX:+PrintFlagsFinal"
+          - name: PF_TRUSTSTORE
+            value: "/opt/midw/trusts/pki-all/truststore.jks"
+          - name: APLAT_ESPROXY_DEBUG
+            value: "true"
+          - name: APLAT_ESPROXY_LOG_REQUEST
+            value: "true"
+          - name: APLAT_ESPROXY_LOG_HEADERS
+            value: "true"
+          - name: ESPROXY_TARGET_SERVER_FRONTEND
+            value: "mqp-ops-ui-frontend-svc.appl-mqp-ops-ui-e1.svc.cluster.local"
+          - name: ESPROXY_TARGET_SERVER_BACKEND
+            value: "mqp-ops-ui-backend-svc.appl-mqp-ops-ui-e1.svc.cluster.local"
+          #see: https://gitlab.pnet.ch/middleware/binaries/images/esproxy/-/issues/19
+          - name: APLAT_ESPROXY_SSL_KEYSTORE
+            value: ""
+          - name: APLAT_ESPROXY_PROTOCOL
+            value: http
+          - name: SSL_NG
+            value: "false"
+        ports:
+          - name: "static"
+            containerPort: 8080
+            protocol: TCP
+          - name: "http"
+            containerPort: 4200
+            protocol: TCP
+          - name: "https"
+            containerPort: 8443
+            protocol: TCP
+        resources:
+          limits:
+            memory: 1Gi
+          requests:
+            memory: 500Mi
+        volumeMounts:
+          - name: ces-data-e1-shared-aplatesproxy-dev-store
+            mountPath: /keybox/signer/
+            readOnly: true
+          - name: ces-data-e1-shared-aplatesproxy-dev-store
+            mountPath: /keybox/node-slot/
+            readOnly: true
+          - name: pki-dev-store
+            mountPath: /keybox/pki/
+            readOnly: true
+      volumes:
+        - name: pki-dev-store
+          secret:
+            secretName: ces-data-e1-shared-pki-dev-store
+        - name: ces-data-e1-shared-aplatesproxy-dev-store
+          secret:
+            secretName: ces-data-e1-shared-aplatesproxy-dev-store
+
+

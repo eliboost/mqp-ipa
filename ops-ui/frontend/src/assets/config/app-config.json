@@ -1,0 +1,8 @@
+{
+  "production": false,
+  "apiUrl": "/mqp-ops-ui/api",
+  "currentEnv": "DEV",
+  "displayEnv": "Local",
+  "allowSendMessages": true,
+  "pageSizeWhileFetchingMessages": 200
+}

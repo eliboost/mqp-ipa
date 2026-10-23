@@ -1,0 +1,38 @@
+apiVersion: pf-activemq-operator.pnet.ch/v1alpha1
+kind: InvalidKind
+metadata:
+  labels:
+    pf-activemq-operator.pnet.ch/run-local: "true"
+    app.kubernetes.io/name: pf-activemq-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: mqp-egw-a
+spec:
+  teamMail: appl_xyz@postfinance.ch
+  roles:
+    owner: bancs/appl_xyz
+    operators:
+      - bancs.mqp
+  instance:
+    namespace: appl-target-e1
+    splunkIndex: midwitd
+    logLevel: INFO
+    replicas: 3
+    storage: 2Gi
+    resources:
+      limits:
+        memory: 2Gi
+      requests:
+        memory: 1Gi
+        cpu: 1
+    queues:
+      - name: "mqp.egw.In_Queue"
+        permission:
+          send:
+            - a-pf-auth-bancs@e1
+          consume:
+            - a-pf-auth-egw
+            -  bancs/appl_xyz
+          browse: []
+    properties: # only for experiments
+      - propertyA=abc
+      - broker-0.propertyB=cde

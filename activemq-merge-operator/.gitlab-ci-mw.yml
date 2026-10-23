@@ -1,0 +1,8 @@
+include:
+  - project: middleware/pipeline-includes/pipelinekatalog
+    ref: v5.3.11
+    file: go-projects.yml
+  - component: gitlab.pnet.ch/middleware/pipeline-includes/pipelinekatalog/go-mockery@v5.3.11
+    inputs:
+      auto_update_mockery: true
+      always_run: true

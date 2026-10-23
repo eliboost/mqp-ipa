@@ -1,0 +1,29 @@
+# extract layers into separate directories
+FROM middleware-docker-local.repo.pnet.ch/pf/mw/openjdk:1.0.202610161422-21-rhel9 as builderlocal
+WORKDIR layers
+COPY target/mqp-ops-ui-backend-exec.jar mqp-ops-ui-backend-exec.jar
+RUN java -Djarmode=tools -jar mqp-ops-ui-backend-exec.jar extract --layers --launcher --destination extracted
+# build actual image
+FROM middleware-docker-local.repo.pnet.ch/pf/mw/openjdk:1.0.202610161422-21-rhel9
+
+ENV PF_TRUSTSTORE="/usr/share/mqp-ops-ui/trust/esproxysigner_truststore_keystore.jks"
+
+ARG APP_VERSION
+LABEL ch.post.pf.mqpopsui.version=${APP_VERSION}
+
+COPY --from=builderlocal layers/extracted/dependencies/ /usr/share/mqp-ops-ui
+COPY --from=builderlocal layers/extracted/spring-boot-loader/ /usr/share/mqp-ops-ui
+COPY --from=builderlocal layers/extracted/snapshot-dependencies/ /usr/share/mqp-ops-ui
+COPY --from=builderlocal layers/extracted/project-dependencies/ /usr/share/mqp-ops-ui
+COPY --from=builderlocal layers/extracted/application/ /usr/share/mqp-ops-ui
+COPY config/application_local_esproxy.yml /usr/share/mqp-ops-ui/config/application.yml
+COPY src/main/resources/self-service-config-e1.yml /usr/share/mqp-ops-ui/config/self-service-config-e1.yml
+COPY src/main/resources/e1-pfnet-a-truststore-keystore.jks /usr/share/mqp-ops-ui/config/e1-pfnet-a-truststore-keystore.jks
+
+WORKDIR /usr/share/mqp-ops-ui
+
+COPY esproxysigner_keystore.jks trust/
+COPY esproxysigner_truststore_keystore.jks trust/
+COPY esproxysigner_truststore.pem trust/
+
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.PropertiesLauncher"]

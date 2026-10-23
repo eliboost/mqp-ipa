@@ -1,0 +1,41 @@
+---
+no-auto-close-label: no-auto-close
+# filepath only allows matching files to be merged
+file-path: '^instances\/[etp]1-k8s-[a-z]+(-[a-z]+)?-[a-z]+\/(e1|t1|t2|p1)-mqp-[a-z0-9]+(-[a-z0-9]+)?-[a-z]+\.yaml$'
+# render adds the possibility to add additional merge request note info.
+renderer:
+  additional-info:
+    - reason: TemporaryDisabled
+      message: |
+       FrozenZone - changes on Production are not allowed!
+    - reason: PathViolation
+      message: |
+       Files can only added/modified in `instances/<k8s-cluster>/` directory. The file must have a name matching <context>-mqp-<application>[- <sub-application>]-<cluster-identifier>.yaml
+  success: |
+    If you ever run into any problems please consult https://developer.pnet.ch/catalog/default/component/activemq/docs for Postfinance specific information about your ActiveMQ Artemis deployment.
+     
+    Should your problem persist please contact us smmwpf@postfinance.ch
+  failure: |
+    Need Help or Found an Issue?
+    
+    If you run into any problems or need urgent assistance with this merge request, please don’t hesitate to reach out!
+    
+    Email: smmwpf@postfinance.ch
+    Teams Channel: [DT Middleware](https://teams.microsoft.com/l/channel/19%3Ab8gv8zGo2RrlxISfzuYKorxmK6O0QViEK-gkYaMvfcE1%40thread.tacv2/DT%20Middleware?groupId=1a087b4c-c532-4a17-9716-7486b69c8f94&tenantId=3ae7c479-0cf1-47f4-8f84-929f364eff67&ngc=true&allowXTenantAccess=true)
+    
+    We’re happy to help and will get back to you as soon as possible.
+  failure-close: |
+    For Repo Owners: if you really want to merge this closed merge request, you have
+    to assign it to yourself before reopening. Otherwise it is closed again via operator.
+    
+    If you have any questions why this Merge Request was closed please contact us!
+
+    Email: smmwpf@postfinance.ch
+    Teams Channel: [DT Middleware](https://teams.microsoft.com/l/channel/19%3Ab8gv8zGo2RrlxISfzuYKorxmK6O0QViEK-gkYaMvfcE1%40thread.tacv2/DT%20Middleware?groupId=1a087b4c-c532-4a17-9716-7486b69c8f94&tenantId=3ae7c479-0cf1-47f4-8f84-929f364eff67&ngc=true&allowXTenantAccess=true)
+
+    We’re happy to help and will get back to you as soon as possible.
+  # failure: This message is added at the bottom of each merge request note that was not automerged.
+ignore:
+  # ignores mr from bot accounts like renovate
+  author-patterns:
+    - '^group_178_bot_dd5bd783cde6ca1c3f05914a2edcbbd5$' # renovate

@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mqp-ops-ui-aplat-cookie-secret-creator-cronjob
+  labels:
+    app: mqp-ops-ui-appl
+  annotations:
+    collectord.io/output: "splunk"
+    collectord.io/logs-index: "midwitd"
+spec:
+  # at 3 am on each monday
+  schedule: "0 3 * * 1"
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 0
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: mqp-ops-ui-aplat-cookie-secret-renewer-sa
+          containers:
+            - name: secretrenewer
+              image: linux-docker-local.repo.pnet.ch/pf/kubernetes
+              imagePullPolicy: Always
+              command:
+                - /bin/bash
+                - -c
+                - date; echo -n '{"data":{"secret":"' > secretpatch; head -c 512 /dev/urandom | base64 -w 0 >> secretpatch; echo '"}}' >> secretpatch; kubectl patch secret aplat-cookie-secret --patch-file secretpatch
+          restartPolicy: Never

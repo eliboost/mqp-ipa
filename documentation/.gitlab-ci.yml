@@ -1,0 +1,107 @@
+stages:
+  - .pre
+  - analyze
+  - build
+  - publish
+
+include:
+  - project: middleware/pipeline-includes/pipelinekatalog
+    ref: v5.3.11
+    file:
+      - docker-login.yml
+      - workflow.yml
+  - component: gitlab.pnet.ch/piaas/components/documentation/techdocs@1.11.3
+    inputs:
+      artifactory_doc_repo: middleware-techdocs-generic-local
+      backstage_entity_kind: Resource
+      backstage_entity_name: activemq
+      artifactory_auth_username: middleware-artifactory-bot
+      artifactory_auth_token: "team_middleware/artifactory/middleware-artifactory-bot/API_KEY@secret"
+  - component: gitlab.pnet.ch/sdss/components/catalog/catalog@1.3.1
+
+
+variables:
+  HTTP_PROXY: "http://outapplpf.pnet.ch:3128"
+  HTTPS_PROXY: "http://outapplpf.pnet.ch:3128"
+  NO_PROXY: "localhost,pnet.ch,post.ch"
+
+check-links:
+  image:
+    name: lycheeverse/lychee:latest-alpine
+    entrypoint: [""]
+  stage: build
+  tags:
+    - docker
+  script: lychee --insecure  --exclude ".*\.(com|org|io|to)" --exclude ".*.[pt]1-[a-z]*-a\.pnet.ch" --exclude "gitlab.pnet.ch" --exclude ".*post.ch"  --exclude "^mailto:" --exclude ".*grafana\.pnet\.ch/.*" --exclude "/blog/index.xml" --exclude "/docs/default/resource/.*" --verbose --timeout 5 docs/**/**/*.md --root-dir /builds/middleware/activemq/documentation/docs
+
+create-crd-docs:
+  stage: .pre
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - sh create-api-doc.sh
+  artifacts:
+    expire_in: 2h
+    paths:
+      - docs/reference/api_reference.md
+    when: always
+
+create-platform-docs:
+  stage: .pre
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH
+  needs:
+    - job: version-sync
+      optional: true
+  script:
+    - sh create-platform-doc.sh
+  artifacts:
+    expire_in: 2h
+    paths:
+      - docs/reference/platform.md
+    when: always
+
+version-sync:
+  image:
+    name: middleware-docker-staging-local.repo.pnet.ch/pf/middleware/versync:0.0.1-20260130080422
+    entrypoint: [""]
+  secrets:
+    GITLAB_TOKEN:
+      vault: $VAULT_I9N_GITLAB_TOKEN_PATH/middleware/activemq/documentation/activemq-versionbridge/token@secret
+      file: false
+  variables:
+    BRANCH_NAME: $CI_COMMIT_BRANCH
+  stage: .pre
+  tags:
+    - docker
+  script:
+    - versync
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+create-section-indexes:
+  image: middleware-docker-local.repo.pnet.ch/pf/middleware/experimental/techdocs:1.10.202605210915
+  stage: .pre
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - python generate-section-indexes.py
+  artifacts:
+    expire_in: 2h
+    paths:
+      - docs/**/index.md
+      - mkdocs.yml
+    when: always
+
+documentation::build:
+  image: middleware-docker-local.repo.pnet.ch/pf/middleware/experimental/techdocs:1.10.202605210915
+  needs:
+    - job: create-platform-docs
+      optional: true
+    - job: create-crd-docs
+      optional: true
+    - job: create-section-indexes
+      optional: true

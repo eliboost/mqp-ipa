@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mqp-ops-ui-frontend-config-map
+  labels:
+    appl: mqp-ops-ui-frontend
+data:
+  app-config.json: |
+    {
+        "production": true,
+        "apiUrl": "https://pfportal.pnet.ch/mqp-ops-ui/api",
+        "currentEnv": "Prod",
+        "allowSendMessages": false,
+        "pageSizeWhileFetchingMessages": 200
+    }

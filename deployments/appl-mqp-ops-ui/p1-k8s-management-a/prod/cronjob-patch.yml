@@ -1,0 +1,6 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mqp-ops-ui-aplat-cookie-secret-creator-cronjob
+  annotations:
+    collectord.io/logs-index: "midwprod"

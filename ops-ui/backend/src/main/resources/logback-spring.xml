@@ -1,0 +1,30 @@
+<configuration>
+    <!-- General Logs Appender -->
+    <appender name="GENERAL_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %-5level - [%thread] - %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Audit Logs Appender -->
+    <appender name="AUDIT_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %-5level - %logger{36} - [AUDIT] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- General Logger -->
+    <logger name="ch.post.pf.mqpopsui.general" level="TRACE" additivity="false">
+        <appender-ref ref="GENERAL_CONSOLE"/>
+    </logger>
+
+    <!-- Audit Logger -->
+    <logger name="ch.post.pf.mqpopsui.audit" level="TRACE" additivity="false">
+        <appender-ref ref="AUDIT_CONSOLE"/>
+    </logger>
+
+    <!-- Root Logger -->
+    <root level="INFO">
+        <appender-ref ref="GENERAL_CONSOLE"/>
+    </root>
+</configuration>

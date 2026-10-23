@@ -1,0 +1,11 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: instances-merger
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: instances-merger
+subjects:
+- kind: ServiceAccount
+  name: instances-merger

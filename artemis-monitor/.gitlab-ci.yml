@@ -1,0 +1,54 @@
+include:
+  - project: middleware/pipeline-includes/images
+    ref: v6.1.223
+    file:
+      - .gitlab-ci-include-images-default.yml
+      - tagging/no-compatibility-tag.yml
+
+variables:
+  # path in target docker repository for the image
+  IMAGE_REPO_PATH: "pf/middleware/activemq"
+  # name of the image
+  IMAGE_BASE_NAME: "artemis-monitor"
+  # static version of the image given bei SM Middleware (may but must not match the product version)
+  IMAGE_STATIC_VERSION: "0.1"
+  # URL to the main documentation for the image (used to set the label org.opencontainers.image.url)
+  IMAGE_DOC_URL: "https://gitlab.pnet.ch/middleware/activemq/artemis-monitor"
+  GIT_CLIFF_CUSTOM_INCLUDE_PATHS: '--include-path src/** --include-path pom.xml'
+  DOCKER_BUILD_ARGS: "MAVEN_SETTINGS_XML_PATH=./settings.xml"
+
+.rule-staging:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - Dockerfile
+        - src/**/*
+        - pom.xml
+
+.rule-release:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $RELEASE_BRANCH_NAME
+      changes:
+        - Dockerfile
+        - src/**/*
+        - pom.xml
+
+build-image:
+  before_script:
+    - cp ${MAVEN_SETTINGS_XML_PATH} ./settings.xml
+
+test:
+  variables:
+    TESTCONTAINERS_RYUK_CONNECTION_TIMEOUT: 5m
+    TESTCONTAINERS_RYUK_RECONNECTION_TIMEOUT: 3m
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/go:5.8.0
+  tags:
+    - docker
+    - linux
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - export HOST_IP=$(docker network inspect bridge -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}')
+    - echo HOST_IP $HOST_IP
+    - go test --timeout 10m -v ./...

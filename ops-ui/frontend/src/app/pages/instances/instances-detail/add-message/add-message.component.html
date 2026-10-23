@@ -1,0 +1,106 @@
+<pf-dialog
+  (displayStateChange)="handleAddMessageDialogStateChange($event)"
+  [opened]="bulkImportDialogOpen"
+  [titleText]="'INSTANCES.ADD_MESSAGE_FORM.TITLE' | translate: {queue: this.queue.name}"
+  min-height="200px"
+  width="600px"
+>
+  <pf-tabs selected="1">
+    <pf-tab
+      label="Journal Import"
+      tabId="one"
+    >
+      <form
+        (ngSubmit)="onSubmitBulkImport('artemis')"
+        [formGroup]="bulkImportMessagesForm"
+      >
+        <pf-form-layout
+          [orientation]="FormLayoutOrientation.VERTICAL"
+          class="mt"
+        >
+          <pf-file-upload
+            [formControl]="bulkImportMessagesForm.controls.journalFile"
+            [invalid]="isInvalid(bulkImportMessagesForm.controls.journalFile)"
+            [maxFileSize]="524288000"
+            [maxFiles]="1"
+            [mode]="FileUploadModes.NO_UPLOAD"
+            [required]="true"
+            accept=".xml"
+            label="Journal File"
+            testSelector="artemis-journal-file-upload"
+          />
+          @if (showBulkImportProgress) {
+            <p class="text-disabled">
+              {{
+                'INSTANCES.ADD_MESSAGE_FORM.BULK_IMPORT_PROGRESS'
+                  | translate: {done: bulkImportDone, total: bulkImportTotal, failed: bulkImportFailed}
+              }}
+            </p>
+          }
+
+          <p class="text-disabled">{{ 'INSTANCES.ADD_MESSAGE_FORM.BULK_IMPORT_FILE_SIZE' | translate }}</p>
+        </pf-form-layout>
+
+        <pf-button-row class="mt-xl">
+          <pf-button
+            [disabled]="isSubmitting"
+            [submit]="true"
+            class="pull-right"
+            color="primary"
+            testSelector="..."
+            >{{ 'INSTANCES.ADD_MESSAGE_FORM.BUTTON_SUBMIT' | translate }}
+          </pf-button>
+        </pf-button-row>
+      </form>
+    </pf-tab>
+    <pf-tab
+      label="Weblogic Import"
+      tabId="two"
+    >
+      <form
+        (ngSubmit)="onSubmitBulkImport('weblogic')"
+        [formGroup]="weblogicImportMessageForm"
+      >
+        <pf-form-layout
+          [orientation]="FormLayoutOrientation.VERTICAL"
+          class="mt"
+        >
+          <pf-file-upload
+            [formControl]="weblogicImportMessageForm.controls.file"
+            [invalid]="isInvalid(weblogicImportMessageForm.controls.file)"
+            [maxFileSize]="524288000"
+            [maxFiles]="1"
+            [mode]="FileUploadModes.NO_UPLOAD"
+            [required]="true"
+            accept=".xml"
+            label="Weblogic Export"
+            testSelector="weblogic-import-file-upload"
+          >
+          </pf-file-upload>
+
+          @if (showBulkImportProgress) {
+            <p class="text-disabled">
+              {{
+                'INSTANCES.ADD_MESSAGE_FORM.BULK_IMPORT_PROGRESS'
+                  | translate: {done: bulkImportDone, total: bulkImportTotal, failed: bulkImportFailed}
+              }}
+            </p>
+          }
+
+          <p class="text-disabled">{{ 'INSTANCES.ADD_MESSAGE_FORM.BULK_IMPORT_FILE_SIZE' | translate }}</p>
+        </pf-form-layout>
+
+        <pf-button-row class="mt-xl">
+          <pf-button
+            [disabled]="isSubmitting"
+            [submit]="true"
+            class="pull-right"
+            color="primary"
+            testSelector="..."
+            >{{ 'INSTANCES.ADD_MESSAGE_FORM.BUTTON_SUBMIT' | translate }}
+          </pf-button>
+        </pf-button-row>
+      </form>
+    </pf-tab>
+  </pf-tabs>
+</pf-dialog>

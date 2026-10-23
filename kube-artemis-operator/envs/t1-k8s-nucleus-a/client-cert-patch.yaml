@@ -1,0 +1,10 @@
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: ACTIVEMQ_ARTEMIS_MANAGER_CERT_SECRET_NAME
+    value: ces-data-t1-identity-mqp-artemisoperator-t1-store
+- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value:
+    name: ACTIVEMQ_ARTEMIS_MANAGER_CA_SECRET_NAME
+    value: ces-data-p1-shared-pki-all-store

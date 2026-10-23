@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kube-artemis-activemq
+resources:
+  - https://repo.pnet.ch/artifactory/middleware-github-generic-remote/arkmq-org/activemq-artemis-operator/releases/download/v2.2.2/activemq-artemis-operator.yaml
+components:
+  - ../../components/artemis
+patches:
+  - target:
+      kind: Deployment
+      name: activemq-artemis-controller-manager
+    path: client-cert-patch.yaml
+  - target:
+      kind: Deployment
+      name: activemq-artemis-controller-manager
+    path: log-level-patch.yaml
+  - target:
+      kind: CustomResourceDefinition
+      name: activemqartemises.broker.amq.io
+    path: artemis-broker-crd-patch.yaml
+helmCharts:
+  - name: pf-namespace
+    version: v1.9.0
+    namespace: kube-artemis-activemq
+    repo: https://repo.pnet.ch/artifactory/linux-cluster-helm-local/
+    valuesFile: values-pf-namespace.yaml

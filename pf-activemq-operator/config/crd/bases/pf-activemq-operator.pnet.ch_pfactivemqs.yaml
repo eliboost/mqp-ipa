@@ -1,0 +1,418 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: pfactivemqs.pf-activemq-operator.pnet.ch
+spec:
+  group: pf-activemq-operator.pnet.ch
+  names:
+    kind: PFActiveMQ
+    listKind: PFActiveMQList
+    plural: pfactivemqs
+    singular: pfactivemq
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The state of the resource
+      jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - description: The age of the resource
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: PFActiveMQ is the Schema for the pfactivemqs API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PFActiveMQSpec defines the desired state of PFActiveMQ
+            properties:
+              instance:
+                description: Instance abstracts the activemq artemis Instance
+                properties:
+                  javaArgs:
+                    description: JavaArgs java arguments for experimental usage
+                    items:
+                      type: string
+                    type: array
+                  logLevel:
+                    description: LogLevel of the activemq artemis broker e.g. INFO,
+                      DEBUG, TRACE
+                    type: string
+                  namespace:
+                    description: Namespace target namespace of the instance
+                    type: string
+                  properties:
+                    description: Properties broker properties for experimental usage
+                    items:
+                      type: string
+                    type: array
+                  queues:
+                    description: Queues definition of the queues
+                    items:
+                      description: Queue defines the queues of the activemq broker
+                      properties:
+                        config:
+                          description: Config used to set queue specific configuration
+                            like maxSizeBytes, pageLimitBytes, pageFullMessagePolicy
+                            and expiryDelay. See https://activemq.apache.org/components/artemis/documentation/latest/address-model.html#address-settings
+                          properties:
+                            addressFullMessagePolicy:
+                              description: AddressFullMessagePolicy defines the policy
+                                to apply when the maxSizeBytes limit is reached. FAIL
+                                will reject new messages, DROP will drop old messages.
+                                See https://artemis.apache.org/components/artemis/documentation/latest/paging.html#paging-mode
+                              enum:
+                              - PAGE
+                              - FAIL
+                              - DROP
+                              - BLOCK
+                              type: string
+                            expiryDelay:
+                              description: ExpiryDelay defines the time in milliseconds
+                                after which a message will expire. See https://artemis.apache.org/components/artemis/documentation/latest/message-expiry.html
+                              type: integer
+                            maxDeliveryAttempts:
+                              description: MaxDeliveryAttempts defines the max attempts
+                                to try a redelivery.
+                              type: integer
+                            maxRedeliveryDelay:
+                              description: MaxRedeliveryDelay defines the max value
+                                the delay can become.
+                              type: integer
+                            maxSizeBytes:
+                              description: MaxSizeBytes defines the maximum size of
+                                the queue in bytes. When the limit is reached, the
+                                configured pageFullMessagePolicy will be applied.
+                                A value of -1 means no limit, this is the default
+                                value. See https://artemis.apache.org/components/artemis/documentation/latest/paging.html#paging-mode
+                              type: integer
+                            pageFullMessagePolicy:
+                              description: PageFullMessagePolicy defines the policy
+                                to apply when the pageLimitBytes is reached. FAIL
+                                will reject new messages, DROP will drop old messages.
+                                See https://artemis.apache.org/components/artemis/documentation/latest/paging.html#paging-mode
+                              enum:
+                              - FAIL
+                              - DROP
+                              type: string
+                            pageLimitBytes:
+                              description: PageLimitBytes defines the size of the
+                                in-memory buffer for messages. When the limit is reached,
+                                messages will be paged to disk. See https://artemis.apache.org/components/artemis/documentation/latest/paging.html#paging-mode
+                              type: integer
+                            redeliveryDelay:
+                              description: RedeliveryDelay defines the time in milliseconds
+                                the broker will wait before redelivering the messages.
+                              type: integer
+                            redeliveryMultiplier:
+                              description: RedeliveryMultiplier defines the multiplier
+                                the last delay time a message is redelivered will
+                                be multiplied with.
+                              pattern: ^[0-9]+(\.[0-9]+)?$
+                              type: string
+                            redistributionDelay:
+                              description: |-
+                                RedistributionDelay defines the delay in milliseconds between detecting the need for redistribution and actually attempting redistribution.
+                                A delay of zero means the messages will be immediately redistributed. A value of -1 signifies that messages will never be redistributed.
+                              type: integer
+                          type: object
+                        name:
+                          description: |-
+                            Name of the queue
+                            Full-Format: <resource-type>.<application>.[<identifier>_]<subject>
+                            For example: mqp.esbpf.In_Queue_1_Test, mqp.myapp.my-first-mqp-demo
+                            <resource-type>: mqp
+                            <application>: [a-z0-9-]+ letters, digits, hyphens
+                            <identifier>: (In_Queue|Out_Queue) is optional
+                            <subject>: [a-zA-Z0-9-]+(_[a-zA-Z0-9-]+)*
+                          pattern: ^mqp\.[a-z0-9-]+\.[a-zA-Z0-9-]+(_[a-zA-Z0-9-]+)*$
+                          type: string
+                        permission:
+                          description: Permission used to set permission for (technical)
+                            users. See https://activemq.apache.org/components/artemis/documentation/latest/security.html#role-based-security-for-addresses
+                          properties:
+                            browse:
+                              description: List of users with browse permission on
+                                this queue
+                              items:
+                                type: string
+                              type: array
+                            consume:
+                              description: List of users with consume permission on
+                                this queue
+                              items:
+                                type: string
+                              minItems: 1
+                              type: array
+                            createAddress:
+                              description: List of users with createAddress permission
+                                on this queue
+                              items:
+                                type: string
+                              type: array
+                            createDurableQueue:
+                              description: List of users with createDurableQueue permission
+                                on this queue
+                              items:
+                                type: string
+                              type: array
+                            createNonDurableQueue:
+                              description: List of users with createNonDurableQueue
+                                permission on this queue
+                              items:
+                                type: string
+                              type: array
+                            deleteAddress:
+                              description: List of users with deleteAddress permission
+                                on this queue
+                              items:
+                                type: string
+                              type: array
+                            deleteDurableQueue:
+                              description: List of users with deleteDurableQueue permission
+                                on this queue
+                              items:
+                                type: string
+                              type: array
+                            deleteNonDurableQueue:
+                              description: List of users with deleteNonDurableQueue
+                                permission on this queue
+                              items:
+                                type: string
+                              type: array
+                            edit:
+                              description: List of users with edit permission on this
+                                queue
+                              items:
+                                type: string
+                              type: array
+                            manage:
+                              description: List of users with manage permission on
+                                this queue
+                              items:
+                                type: string
+                              type: array
+                            send:
+                              description: List of users with send permission on this
+                                queue
+                              items:
+                                type: string
+                              minItems: 1
+                              type: array
+                            view:
+                              description: List of users with view permission on this
+                                queue
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - consume
+                          - send
+                          type: object
+                      required:
+                      - name
+                      - permission
+                      type: object
+                    type: array
+                  replicas:
+                    default: 2
+                    description: Replicas number of brokers
+                    format: int32
+                    type: integer
+                  resources:
+                    description: Resources kubernetes resources definition
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  splunkIndex:
+                    description: SplunkIndex application index the log should be forwarded
+                      to
+                    type: string
+                  storage:
+                    description: Storage size of the block storage of the instance
+                      - should match defined size of the block storage defined for
+                      the namespace
+                    pattern: ^\d+(\.\d+)?[KMGT]i$
+                    type: string
+                required:
+                - namespace
+                - splunkIndex
+                type: object
+              roles:
+                description: Roles defines the owner and operators of this Instance
+                properties:
+                  operators:
+                    description: Operators defines the roles that are allowed to manage
+                      the instance
+                    items:
+                      type: string
+                    type: array
+                  owner:
+                    description: Owner of the mqp instance
+                    type: string
+                required:
+                - owner
+                type: object
+              teamMail:
+                description: TeamMail email address from responsible team
+                pattern: ^[a-zA-Z0-9._%+-]+@postfinance.ch$
+                type: string
+            required:
+            - instance
+            - roles
+            - teamMail
+            type: object
+          status:
+            description: PFActiveMQStatus defines the observed state of PFActiveMQ
+            properties:
+              conditions:
+                description: |-
+                  Conditions represents the observations of a PFActiveMQ's current state.
+                  Known .status.conditions.type are:
+                     Ready
+                     LoggingConfigReady
+                     CertResourcesReady
+                     CertSecretResourceReady
+                     ActiveMQBrokersReady
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lastAppliedStorage:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

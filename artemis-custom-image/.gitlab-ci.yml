@@ -1,0 +1,46 @@
+include:
+  - project: middleware/pipeline-includes/images
+    ref: v6.1.223
+    file:
+      - .gitlab-ci-include-images.yml
+      - tagging/no-compatibility-tag.yml
+
+variables:
+  # renovate: datasource=docker depName=middleware-docker.repo.pnet.ch/arkmq-org/activemq-artemis-broker-kubernetes
+  ARTEMIS_IMAGE_VERSION: 2.53.0
+  # path in target docker repository for the image
+  IMAGE_REPO_PATH: "pf/middleware"
+  # name of the image
+  IMAGE_BASE_NAME: "artemis-custom-image"
+  # URL to the main documentation for the image (used to set the label org.opencontainers.image.url)
+  IMAGE_DOC_URL: "https://gitlab.pnet.ch/middleware/activemq/artemis-custom-image/"
+  # Buildargs
+  DOCKER_BUILD_ARGS: "ARTEMIS_IMAGE_VERSION=${ARTEMIS_IMAGE_VERSION}"
+
+
+# hack to use bash string operations
+before_script:
+  # static version of the image given bei SM Middleware (may but must not match the product version)
+  - export IMAGE_STATIC_VERSION="${ARTEMIS_IMAGE_VERSION%.*}" # get first two semver segments x.y
+
+.rule-staging:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - Dockerfile
+        - .gitlab-ci.yml
+        
+.rule-release:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $RELEASE_BRANCH_NAME
+      changes:
+        - Dockerfile
+        - .gitlab-ci.yml
+
+build-image:
+  extends:
+    - .build-image
+
+release-image:
+  extends:
+    - .release-image

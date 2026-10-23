@@ -1,0 +1,24 @@
+---
+services:
+  activemq-artemis:
+    image: apache/artemis:2.57.0
+    container_name: 'activemq-artemis'
+    ports:
+      - 61616:61616
+      - 8161:8161
+    volumes:
+      - ./activemq_data:/data/activemq
+      - ./activemq_log:/var/log/activemq
+      - ./patch-broker.sh:/var/lib/artemis/etc/scripts/patch-broker.sh
+  artemis-monitor:
+    image: middleware-docker-staging-local.repo.pnet.ch/pf/middleware/activemq/artemis-monitor
+    container_name: 'artemis-monitor'
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/actuator/prometheus || exit 1" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    ports:
+      - 0:8080
+    environment:
+      SPRING_ARTEMIS_BROKER_URL: tcp://activemq-artemis:61616

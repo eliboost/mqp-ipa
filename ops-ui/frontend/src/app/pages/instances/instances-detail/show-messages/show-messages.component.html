@@ -1,0 +1,397 @@
+<app-page-container
+  [pageTitle]="
+    selectedQueue.name + ' - ' + ('INSTANCES.MESSAGES_TABLE.TITLE_REPLICA' | translate) + ' ' + selectedQueue.replica
+  "
+>
+  <app-add-message
+    (errorMessage)="showErrorTextBox($event)"
+    (importComplete)="fetchQueue(this.selectedQueue.name, this.selectedQueue.replica)"
+    (messageAdded)="handleMessageAdded()"
+    (submitting)="hideAllTextBoxes()"
+    (successMessage)="showSuccessTextBox($event)"
+    [bulkImportOpen]="bulkImportDialogOpen"
+    [instance]="instance"
+    [queue]="selectedQueue"
+  ></app-add-message>
+
+  @if (actionInProgress) {
+    <pf-card class="mb">
+      <pf-status-box
+        [severity]="PfStatusSeverity.INFO"
+        [size]="StatusBoxSize.MEDIUM"
+      >
+        {{
+          'INSTANCES.STATUS_BOXES.STREAMING_ACTIONS.PROGRESS'
+            | translate: {processed: actionProgressProcessed, total: actionProgressTotal}
+        }}
+      </pf-status-box>
+    </pf-card>
+  }
+
+  @if (showErrorStatus) {
+    <pf-card class="mb">
+      <pf-status-box
+        [closeButton]="true"
+        [severity]="PfStatusSeverity.ERROR"
+        [size]="StatusBoxSize.MEDIUM"
+      >
+        {{ errorStatusText }}
+      </pf-status-box>
+    </pf-card>
+  }
+
+  @if (showWarningStatus) {
+    <pf-card class="mb">
+      <pf-status-box
+        [closeButton]="true"
+        [severity]="PfStatusSeverity.WARNING"
+        [size]="StatusBoxSize.MEDIUM"
+      >
+        {{ warningStatusText }}
+      </pf-status-box>
+    </pf-card>
+  }
+
+  @if (showSuccessStatus) {
+    <pf-card class="mb">
+      <pf-status-box
+        [closeButton]="true"
+        [severity]="PfStatusSeverity.OK"
+        [size]="StatusBoxSize.MEDIUM"
+      >
+        {{ successStatusText }}
+      </pf-status-box>
+    </pf-card>
+  }
+
+  <!-- Table with all the message from the selected queue -->
+  @if (messagesInSelectedQueue) {
+    <pf-card class="mt">
+      <h4>
+        {{
+          selectedQueue.name +
+            ' - ' +
+            ('INSTANCES.MESSAGES_TABLE.TITLE_REPLICA' | translate) +
+            ' ' +
+            selectedQueue.replica
+        }}
+      </h4>
+
+      @if (showSelectAllMessage) {
+        <pf-status-box [severity]="PfStatusSeverity.INFO">
+          {{
+            'INSTANCES.SHOW_MESSAGES.SELECTED_COUNT'
+              | translate
+                : {
+                    selected: allMessagesSelected ? selectedQueue.messageCount : selectedMessages.length,
+                    total: selectedQueue.messageCount,
+                  }
+          }}
+          @if (allMessagesSelected) {
+            <pf-link (click)="undoSelectAllMessages()"
+              >{{ 'INSTANCES.SHOW_MESSAGES.UNDO_SELECT_ALL_LINK' | translate }}
+            </pf-link>
+          } @else {
+            <pf-link (click)="selectAllMessages()"
+              >{{ 'INSTANCES.SHOW_MESSAGES.SELECT_ALL_LINK' | translate: {count: selectedQueue.messageCount} }}
+            </pf-link>
+          }
+        </pf-status-box>
+      }
+      <pf-table
+        (bottomEdgeScrolled)="handleScrolledToMessageTableBottomEvent()"
+        (selectedItemsChanged)="handleSelectedMessagesChange($event)"
+        [bottomScrollListenerConfig]="{enabled: true}"
+        [columnReorderingAllowed]="false"
+        [enableCellTextSelection]="true"
+        [footerConfig]="footerConfigMessagesTable"
+        [heightConfig]="{heightMode: TableHeightMode.AUTO_HEIGHT}"
+        [items]="messagesInSelectedQueue"
+        [loading]="dataForMessagesTableLoading"
+        [menuConfig]="tableMenuConfigMessagesTable"
+        [mode]="TableMode.SELECT_MULTI"
+        [rowColor]="{evenOdd: true}"
+        testSelector="table--messages-in-queue"
+      >
+        <pf-table-column
+          [filterable]="true"
+          [header]="'INSTANCES.MESSAGES_TABLE.COLUMN_TITLE_MESSAGEID' | translate"
+          [sortable]="true"
+          [widthConfig]="{resizable: true, minWidthPx: 50, flex: 1}"
+          path="headers.messageID"
+        >
+        </pf-table-column>
+        <pf-table-column
+          [filterable]="true"
+          [header]="'INSTANCES.MESSAGES_TABLE.COLUMN_TITLE_HEADERMESSAGEID' | translate"
+          [sortable]="true"
+          [widthConfig]="{resizable: true, minWidthPx: 120, flex: 2}"
+          path="properties.Header_messageId.value"
+        ></pf-table-column>
+        <pf-table-column
+          [filterable]="true"
+          [header]="'INSTANCES.MESSAGES_TABLE.COLUMN_TITLE_SENDER' | translate"
+          [sortable]="true"
+          [widthConfig]="{resizable: true, minWidthPx: 50, flex: 1}"
+          path="properties.Header_sender.value"
+        ></pf-table-column>
+        <pf-table-column
+          [filterable]="true"
+          [header]="'INSTANCES.MESSAGES_TABLE.COLUMN_TITLE_RECEIVER' | translate"
+          [sortable]="true"
+          [widthConfig]="{resizable: true, minWidthPx: 50, flex: 1}"
+          path="properties.Header_receiver.value"
+        ></pf-table-column>
+        <pf-table-column
+          [filterable]="true"
+          [header]="'INSTANCES.MESSAGES_TABLE.COLUMN_TITLE_MESSAGETYPE' | translate"
+          [sortable]="true"
+          [widthConfig]="{resizable: true, minWidthPx: 50, flex: 1}"
+          path="properties.Header_messageType.value"
+        ></pf-table-column>
+        @if (selectedQueue.name?.endsWith('_DLQ')) {
+          <pf-table-column
+            [header]="'INSTANCES.MESSAGES_TABLE.COLUMN_TITLE_ORIGINAL_QUEUE' | translate"
+            [widthConfig]="{resizable: true, minWidthPx: 120, flex: 1}"
+            path="properties._AMQ_ORIG_QUEUE.value"
+          ></pf-table-column>
+        }
+        <pf-table-column
+          [contentProvider]="formatTimestampToDateProvider"
+          [header]="'INSTANCES.MESSAGES_TABLE.COLUMN_TITLE_TIMESTAMP' | translate"
+          [sortable]="true"
+          [widthConfig]="{resizable: true, minWidthPx: 120, flex: 1}"
+          path="headers.timestamp"
+          sortDirection="desc"
+        ></pf-table-column>
+      </pf-table>
+    </pf-card>
+  } @else {
+    <pf-card class="col-md-12">
+      <pf-status-box
+        [severity]="PfStatusSeverity.INFO"
+        [size]="StatusBoxSize.MEDIUM"
+        >{{ 'INSTANCES.STATUS_BOXES.NO_MESSAGES_FOUND' | translate }}
+      </pf-status-box>
+    </pf-card>
+  }
+
+  <!-- Dialog to show details of a message -->
+  <pf-dialog
+    (displayStateChange)="handleMessageDetailsDialogStateChange($event)"
+    [opened]="messageDetailsDialogOpen"
+    [titleText]="
+      'INSTANCES.DIALOGS.MESSAGE_DETAILS.TITLE'
+        | translate
+          : {
+              message: this.selectedMessage.properties?.['Header_messageId']?.value
+                ? this.selectedMessage.properties?.['Header_messageId']?.value
+                : this.selectedMessage.headers?.['messageID'],
+            }
+    "
+    height="300px"
+    width="auto"
+  >
+    <pf-form-layout>
+      <h4>{{ 'INSTANCES.DIALOGS.MESSAGE_DETAILS.SUBTITLE_HEADERS' | translate }}</h4>
+
+      @for (header of getSelectedMessageHeaders(); track header[0]) {
+        @if (header[1] !== 'null' && header[1] !== null) {
+          <pf-label-value [label]="header[0]">{{ header[1] }}</pf-label-value>
+        }
+      }
+
+      <h4>{{ 'INSTANCES.DIALOGS.MESSAGE_DETAILS.SUBTITLE_PROPERTIES' | translate }}</h4>
+
+      @for (property of getSelectedMessageProperties(); track property[0]) {
+        <pf-label-value [label]="property[0]">{{ property[1].value }} ({{ property[1].type }})</pf-label-value>
+      }
+    </pf-form-layout>
+  </pf-dialog>
+
+  <!-- Dialog to show body of a message -->
+  <pf-dialog
+    (displayStateChange)="handleMessageBodyDialogStateChange($event)"
+    [opened]="messageBodyDialogOpen"
+    [titleText]="
+      'INSTANCES.DIALOGS.MESSAGE_BODY.TITLE'
+        | translate
+          : {
+              message:
+                '' + this.selectedMessage.properties?.['Header_messageId']?.value
+                  ? this.selectedMessage.properties?.['Header_messageId']?.value
+                  : this.selectedMessage.headers?.['messageID'],
+            }
+    "
+    height="300px"
+    width="auto"
+  >
+    <pf-form-layout>
+      <pf-status-box
+        [closeButton]="false"
+        [severity]="PfStatusSeverity.INFO"
+        [size]="StatusBoxSize.MEDIUM"
+        class="statusbox-max-bytes"
+        >{{ 'INSTANCES.STATUS_BOXES.MESSAGE_BODY.INFO' | translate }}
+      </pf-status-box>
+
+      <pf-code-viewer
+        *ngIf="selectedMessage.headers && selectedMessage.headers['type'] === '3' && selectedMessage.text"
+        [code]="formatContent(selectedMessage.text)"
+        [language]="determineCodeBlockLanguage(selectedMessage.text)"
+        [showCopyButton]="true"
+        class="codeblock"
+        testSelector="..."
+      />
+
+      <div *ngIf="selectedMessage.headers && selectedMessage.headers['type'] === '4'">
+        <p class="title">Binary Vorschau</p>
+        <pf-code-viewer
+          [code]="formatContent(getBodyPreviewAsString(selectedMessage.bodyPreview))"
+          [language]="determineCodeBlockLanguage(getBodyPreviewAsString(selectedMessage.bodyPreview))"
+          [showCopyButton]="true"
+          class="codeblock"
+          testSelector="..."
+        />
+
+        <p class="title">Binary Content</p>
+        <pf-text-area
+          [readonly]="true"
+          [value]="selectedMessage.bodyPreview?.toString()"
+          maxHeight="300px"
+        >
+          <pf-copy-to-clipboard
+            slot="after"
+            testSelector="..."
+          ></pf-copy-to-clipboard>
+        </pf-text-area>
+      </div>
+    </pf-form-layout>
+  </pf-dialog>
+
+  <!-- Dialog to delete all messages -->
+  <pf-dialog
+    [noCloseKnob]="true"
+    [noCloseOnEsc]="true"
+    [noCloseOnOutsideClick]="true"
+    [opened]="deleteMessagesDialogOpen"
+    [titleText]="'INSTANCES.DIALOGS.DELETE_MESSAGES.TITLE' | translate"
+    height="300px"
+    width="600px"
+  >
+    <pf-label-value
+      [label]="'INSTANCES.DIALOGS.DELETE_MESSAGES.QUEUE' | translate"
+      testSelector="label-value--queue-to-delete-all-messages"
+      >{{ selectedQueue.name }}
+    </pf-label-value>
+
+    <pf-label-value
+      [label]="'INSTANCES.DIALOGS.DELETE_MESSAGES.MESSAGEIDS' | translate"
+      testSelector="label-value--selected-messages"
+    >
+      @if (allMessagesSelected) {
+        {{ 'INSTANCES.DIALOGS.DELETE_MESSAGES.ALL_MESSAGES_LABEL' | translate }}
+      } @else {
+        {{ getSelectedMessagesAsFormattedString() }}
+      }
+    </pf-label-value>
+
+    @if (allMessagesSelected) {
+      <pf-text-field
+        [errorMessage]="'INSTANCES.DIALOGS.DELETE_MESSAGES.BLOCK_SIZE_ERROR' | translate"
+        [formControl]="deleteBlockSizeControl"
+        [invalid]="deleteBlockSizeControl.invalid"
+        [label]="'INSTANCES.DIALOGS.DELETE_MESSAGES.BLOCK_SIZE' | translate"
+        [required]="true"
+        testSelector="text--block-size-error"
+        type="number"
+      ></pf-text-field>
+      <pf-text
+        >{{
+          'INSTANCES.DIALOGS.DELETE_MESSAGES.BLOCK_SIZE_HINT'
+            | translate: {recommended: recommendedBlockSize(selectedQueue.messageCount ?? 0)}
+        }}
+      </pf-text>
+    }
+    <pf-button
+      (click)="deleteSelectedMessages()"
+      [color]="ButtonColor.PRIMARY"
+      [disabled]="deleteBlockSizeControl.invalid"
+      slot="buttons"
+      testSelector="button--confirm-delete-all-messages"
+      >{{ 'INSTANCES.DIALOGS.DELETE_MESSAGES.BUTTON_DELETE' | translate }}
+    </pf-button>
+    <pf-button
+      (click)="deleteMessagesDialogOpen = false"
+      slot="buttons"
+      testSelector="button--cancel-delete-all-messages"
+      >{{ 'INSTANCES.DIALOGS.DELETE_MESSAGES.BUTTON_CANCEL' | translate }}
+    </pf-button>
+  </pf-dialog>
+
+  <!-- Dialog to move show-messages to other queue -->
+  <pf-dialog
+    [formGroup]="moveMessagesFormGroup"
+    [noCloseKnob]="true"
+    [noCloseOnEsc]="true"
+    [noCloseOnOutsideClick]="true"
+    [opened]="moveMessagesDialogOpen"
+    [titleText]="'INSTANCES.DIALOGS.MOVE_MESSAGES.TITLE' | translate"
+    height="300px"
+    width="800px"
+  >
+    <pf-label-value
+      [label]="'INSTANCES.DIALOGS.MOVE_MESSAGES.CURRENT_QUEUE' | translate"
+      testSelector="label-value--current-queue"
+      >{{ this.selectedQueue.name }}
+    </pf-label-value>
+    <pf-label-value
+      [label]="'INSTANCES.DIALOGS.MOVE_MESSAGES.MESSAGEIDS' | translate"
+      testSelector="label-value--selected-messages"
+    >
+      @if (allMessagesSelected) {
+        {{ 'INSTANCES.DIALOGS.MOVE_MESSAGES.ALL_MESSAGES_LABEL' | translate }}
+      } @else {
+        {{ getSelectedMessagesAsFormattedString() }}
+      }
+    </pf-label-value>
+    <pf-combobox
+      [formControl]="moveMessagesFormGroup.controls.newQueueNames"
+      [items]="possibleQueuesToMoveMessagesTo"
+      [label]="'INSTANCES.DIALOGS.MOVE_MESSAGES.TARGET_QUEUE' | translate"
+      [required]="true"
+      testSelector="combobox--target-queue"
+    >
+    </pf-combobox>
+    @if (allMessagesSelected) {
+      <pf-text-field
+        [errorMessage]="'INSTANCES.DIALOGS.MOVE_MESSAGES.BLOCK_SIZE_ERROR' | translate"
+        [formControl]="moveMessagesFormGroup.controls.blockSize"
+        [invalid]="moveMessagesFormGroup.controls.blockSize.invalid"
+        [label]="'INSTANCES.DIALOGS.MOVE_MESSAGES.BLOCK_SIZE' | translate"
+        [required]="true"
+        testSelector="text--block-size-error"
+        type="number"
+      ></pf-text-field>
+      <pf-text
+        >{{
+          'INSTANCES.DIALOGS.MOVE_MESSAGES.BLOCK_SIZE_HINT'
+            | translate: {recommended: recommendedBlockSize(selectedQueue.messageCount ?? 0)}
+        }}
+      </pf-text>
+    }
+    <pf-button
+      (click)="moveSelectedMessages()"
+      [color]="ButtonColor.PRIMARY"
+      slot="buttons"
+      testSelector="button--confirm-move-messages"
+      >{{ 'INSTANCES.DIALOGS.MOVE_MESSAGES.BUTTON_MOVE' | translate }}
+    </pf-button>
+    <pf-button
+      (click)="closeMoveMessagesDialog()"
+      slot="buttons"
+      testSelector="button--cancel-move-messages"
+      >{{ 'INSTANCES.DIALOGS.MOVE_MESSAGES.BUTTON_CANCEL' | translate }}
+    </pf-button>
+  </pf-dialog>
+</app-page-container>

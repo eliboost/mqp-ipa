@@ -1,0 +1,71 @@
+# https://developer.pnet.ch/docs/default/domain/aplat/security-services/providers/Spring/
+aplat:
+  security:
+    provider:
+      aplat-cookie-secret-path: '/etc/secrets/secret'
+      signer-certificate-alias: 'esproxysigner'
+      signer-truststore-file: '/keybox/signer/truststore.jks'
+
+application:
+  aplat:
+    enabled: false
+  platform: LOCAL
+  platformHasDefaultRole: true
+  jolokiaApiPort: 443
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      base-path: "/mqp-ops-ui/actuator"
+      exposure:
+        include: health,info,loggers,metrics,prometheus,env,hawtio,jolokia
+
+logging:
+  level:
+    # General logs from mqpopsui app
+    ch.post.pf.mqpopsui.general: DEBUG
+
+    # Audit logs from mqpopsui app
+    ch.post.pf.mqpopsui.audit: DEBUG
+
+    # All other logs
+    root: INFO
+
+    # Provider (ebenfalls das spring property spring.websecurity.debug auf true setzen)
+    ch.postfinance.aplat.security.providers: INFO
+    org.springframework.security: INFO
+
+    # Consumer
+    ch.post.pf.mw.fw.security.authentication: INFO
+    ch.postfinance.aplat.security.compauth: INFO
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        # Muss JSESSIONID sein um dasselbe Login-Verhalten wie auf T1 sicherzustellen. Siehe RETAINCOOKIES
+        # https://developer.pnet.ch/docs/default/Domain/aplat-proxies
+        name: JSESSIONID
+
+spring:
+  websecurity:
+    debug: true
+  profiles:
+    active: local
+  ssl:
+    bundle:
+      jks:
+        client-bundle:
+          # Values for e1-pfnet-a.pnet.ch
+          keystore:
+            location: "classpath:e1-pfnet-a-truststore-keystore.jks"
+            password: "_DSGc-xtwrVfp0HcNCHDc9x1uHtSeGZ{"
+
+self-service-config:
+  file:
+    # path: "C:\\Users\\herzogj\\Downloads\\self-service-config-e1-pfnet-a.yml"
+    path: "src/main/resources/self-service-config-e1.yml"

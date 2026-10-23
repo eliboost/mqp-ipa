@@ -1,0 +1,48 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+namespace: kube-artemis-activemq
+images:
+  - name: quay.io/arkmq-org/activemq-artemis-operator
+    newName: middleware-docker.repo.pnet.ch/arkmq-org/activemq-artemis-operator
+patches:
+  # First, we need to get rid of some resources:
+  # -> Namespace is handled by pf-namespace
+  - target:
+      kind: Namespace
+      name: activemq-artemis-operator
+    patch: |
+      $patch: delete
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: activemq-artemis-operator
+  # -> All explicit namespaces that held the old namespace are removed
+  - target:
+      namespace: activemq-artemis-operator
+    patch: |
+      - op: remove
+        path: /metadata/namespace
+  # -> For some reason, above catch-all does not involve the cluster role, so here we go again
+  - target:
+      kind: ClusterRole
+      name: activemq-artemis-operator-role
+    patch: |
+      - op: remove
+        path: /metadata/namespace
+  # -> And following are some "regular patches"
+  - target:
+      kind: Deployment
+      name: activemq-artemis-controller-manager
+    path: namespace_watch_patch.yaml
+  - target:
+      kind: ClusterRoleBinding
+      name: activemq-artemis-operator-rolebinding
+    path: namespace_cluster_role_patch.yaml
+  - target:
+      kind: Deployment
+      name: activemq-artemis-controller-manager
+    path: resources-patch.yaml
+  - target:
+      kind: Deployment
+      name: activemq-artemis-controller-manager
+    path: ../artemis/enable-metrics-scrape.yaml

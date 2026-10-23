@@ -1,0 +1,110 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ch.postfinance.activemq</groupId>
+    <artifactId>pf-artemis-logging-plugin</artifactId>
+    <version>0.0.0-SNAPSHOT</version>
+
+    <properties>
+        <!-- Build properties -->
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Dependency versions -->
+        <activemq.version>2.57.0</activemq.version>
+        <junit.jupiter.version>6.1.3</junit.jupiter.version>
+
+        <!-- Plugin versions -->
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.artemis</groupId>
+            <artifactId>artemis-server</artifactId>
+            <version>${activemq.version}</version>
+        </dependency>
+
+      <!-- Test -->
+
+      <!-- JUnit 5 -->
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-engine</artifactId>
+        <version>${junit.jupiter.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-api</artifactId>
+        <version>${junit.jupiter.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-params</artifactId>
+        <version>${junit.jupiter.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.platform</groupId>
+        <artifactId>junit-platform-suite</artifactId>
+        <version>${junit.jupiter.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <!-- Assert Framework for JUnit -->
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>3.27.7</version>
+        <scope>test</scope>
+      </dependency>
+
+      <!-- Logging -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>2.0.20</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <!-- logback used for testing -->
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>1.6.5</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <name>PostFinance Middleware Releases</name>
+            <url>https://repo.pnet.ch/artifactory/middleware-maven-releases-local</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>PostFinance Middleware Snapshots</name>
+            <url>https://repo.pnet.ch/artifactory/middleware-maven-snapshots-local</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+</project>

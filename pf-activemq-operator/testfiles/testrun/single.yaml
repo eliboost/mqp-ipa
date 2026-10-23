@@ -1,0 +1,223 @@
+---
+# normally created by cert-manager
+apiVersion: v1
+data:
+  ca.crt: ZW1wdHk=
+  keystore.jks: ZW1wdHk=
+  tls.crt: ZW1wdHk=
+  tls.key: ZW1wdHk=
+  truststore.jks: ZW1wdHk=
+kind: Secret
+metadata:
+  annotations:
+    cert-manager.io/alt-names: %%replace%%-ssl-0.e1-local-lab-a.pnet.ch,%%replace%%-ssl-0.appl-activemq-iscsi-test-e1.svc.cluster.local
+    cert-manager.io/certificate-name: %%replace%%-ssl-cert
+    cert-manager.io/common-name: %%replace%%.e1-local-lab-a.pnet.ch
+    cert-manager.io/ip-sans: ""
+    cert-manager.io/issuer-group: cert-manager.io
+    cert-manager.io/issuer-kind: ClusterIssuer
+    cert-manager.io/issuer-name: tls-rsa-nonprod-vault
+    cert-manager.io/subject-countries: CH
+    cert-manager.io/subject-localities: Bern
+    cert-manager.io/subject-organizationalunits: PostFinance AG
+    cert-manager.io/subject-organizations: PostFinance AG
+    cert-manager.io/subject-provinces: Bern
+    cert-manager.io/uri-sans: ""
+  creationTimestamp: "2024-07-15T12:24:53Z"
+  labels:
+    controller.cert-manager.io/fao: "true"
+  name: %%replace%%-ssl-cert
+  namespace: appl-activemq-iscsi-test-e1
+  resourceVersion: "164974"
+  uid: 66e4339a-598b-4841-a097-f46378432ca2
+type: kubernetes.io/tls
+
+---
+# normally created by activemq operator
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  creationTimestamp: "2024-07-15T12:24:49Z"
+  generation: 1
+  name: %%replace%%
+  namespace: appl-activemq-iscsi-test-e1
+  labels:
+    pf-activemq-operator.pnet.ch/operator-managed: "true"
+  resourceVersion: "164390"
+  uid: da5b194b-7ca4-454c-9f55-e8450c347859
+spec:
+  acceptors:
+    - expose: true
+      exposeMode: ingress
+      ingressHost: $(CR_NAME)-$(ITEM_NAME)-$(BROKER_ORDINAL).$(INGRESS_DOMAIN)
+      name: ssl
+      port: 61617
+      protocols: CORE,AMQP
+      sslEnabled: true
+      sslSecret: %%replace%%-mapping-ssl-cert
+  addressSettings: {}
+  console:
+    expose: true
+    exposeMode: ingress
+    name: console
+  deploymentPlan:
+    affinity: {}
+    annotations:
+      collectord.io/logs-index: midwitd
+      collectord.io/output: splunk
+      prometheus.io/scrape: "true"
+    enableMetricsPlugin: false
+    extraMounts:
+      secrets:
+        - %%replace%%-ssl-cert
+        - ces-data-p1-shared-pki-all-store
+      configMaps:
+        - %%replace%%-logging-config
+    image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis.2.33.0
+    initImage: quay.io/arkmq-org/activemq-artemis-broker-init:artemis.2.33.0
+    jolokiaAgentEnabled: true
+    journalType: aio
+    labels:
+      app: activemq
+      env: E1
+      instance: todo
+      name: broker
+    livenessProbe:
+      failureThreshold: 10
+    messageMigration: true
+    persistenceEnabled: true
+    podSecurity: {}
+    podSecurityContext:
+      fsGroup: 1001
+      runAsUser: 1001
+    readinessProbe:
+      failureThreshold: 10
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    size: 1
+    storage:
+      size: 2Gi
+      storageClassName: local-path
+  env:
+    - name: AMQ_EXTRA_ARGS
+      value: --relax-jolokia
+  ingressDomain: e1-local-lab-a.pnet.ch
+  upgrades:
+    enabled: false
+    minor: false
+  version: 2.33.0
+status:
+  conditions:
+    - lastTransitionTime: "2024-07-15T12:25:19Z"
+      message: ""
+      observedGeneration: 1
+      reason: ValidationSucceded
+      status: "True"
+      type: Valid
+    - lastTransitionTime: "2024-08-06T07:54:36Z"
+      message: ""
+      reason: AllPodsReady
+      status: "True"
+      type: Deployed
+    - lastTransitionTime: "2024-08-06T07:54:36Z"
+      message: ""
+      reason: ResourceReady
+      status: "True"
+      type: Ready
+    - lastTransitionTime: "2024-08-06T07:54:37Z"
+      message: ""
+      reason: Applied
+      status: "True"
+      type: BrokerPropertiesApplied
+    - lastTransitionTime: "2024-08-06T07:54:37Z"
+      message: ""
+      reason: VersionMatch
+      status: "True"
+      type: BrokerVersionAligned
+  deploymentPlanSize: 1
+  podStatus:
+    ready:
+      - %%replace%%-ss-0
+  scaleLabelSelector: ActiveMQArtemis=%%replace%%,app=activemq,application=%%replace%%-app,env=E1,instance=todo,name=broker
+  upgrade:
+    majorUpdates: false
+    minorUpdates: false
+    patchUpdates: false
+    securityUpdates: false
+  version:
+    brokerVersion: 2.33.0
+    image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis.2.33.0
+    initImage: quay.io/arkmq-org/activemq-artemis-broker-init:artemis.2.33.0
+---
+# used in tests to allow PVC resize
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: %%replace%%local-path
+provisioner: rancher.io/local-path
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+---
+# lightweight stand-in for the StatefulSet the Artemis operator would normally create.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: %%replace%%-ss
+  namespace: appl-activemq-iscsi-test-e1
+  labels:
+    ActiveMQArtemis: %%replace%%
+spec:
+  serviceName: %%replace%%-ss
+  replicas: 1
+  selector:
+    matchLabels:
+      ActiveMQArtemis: %%replace%%
+  template:
+    metadata:
+      labels:
+        ActiveMQArtemis: %%replace%%
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: broker
+          image: registry.k8s.io/pause:3.9
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: %%replace%%
+        labels:
+          ActiveMQArtemis: %%replace%%
+      spec:
+        storageClassName: %%replace%%local-path
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi
+---
+# PVC that would normally be created by the StatefulSet controller
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: %%replace%%-%%replace%%-ss-0
+  namespace: appl-activemq-iscsi-test-e1
+  labels:
+    ActiveMQArtemis: %%replace%%
+    pf-activemq-operator.pnet.ch/primary-resource-namespace: appl-activemq-iscsi-test-e1
+    pf-activemq-operator.pnet.ch/primary-resource-name: %%replace%%
+spec:
+  storageClassName: %%replace%%local-path
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

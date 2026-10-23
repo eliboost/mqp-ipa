@@ -1,0 +1,22 @@
+include:
+  - project: middleware/pipeline-includes/java
+    ref: v13.0.27
+    file: .gitlab-ci-include-java.yml
+  - project: middleware/pipeline-includes/pipelinekatalog
+    ref: v5.3.11
+    file: docker-login.yml
+  - local: .gitlab-ci-esproxy.yml
+  - local: .gitlab-ci-frontend.yml
+  - local: .gitlab-ci-backend.yml
+
+# Cache modules in between jobs
+cache:
+  key: $CI_COMMIT_REF_SLUG
+  paths:
+    - .npm/
+
+# All used variables
+variables:
+  DOCKER_IMAGE_ESPROXY: pf/middleware/mqpopsui/esproxy
+  DOCKER_IMAGE_FRONTEND: pf/middleware/mqpopsui/frontend
+  DOCKER_IMAGE_BACKEND: pf/middleware/mqpopsui/backend

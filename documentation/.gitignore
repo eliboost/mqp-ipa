@@ -1,0 +1,21 @@
+### IntelliJ IDEA ###
+.idea/*
+*.iws
+*.iml
+*.ipr
+!.idea/copyright
+!.idea/runConfigurations
+!.idea/codeStyles
+!.idea/dataSources.xml
+!.idea/encodings.xml
+!.idea/sonarlint.xml
+/*/.idea/*
+
+
+### Hugo Server ###
+public/
+resources/
+.hugo_build.lock
+
+python/venv
+site/

@@ -1,0 +1,15 @@
+labels:
+  postfinance.ch/network-role: kube-pf-activemq
+global:
+  cluster_id: "e1-k8s-pfnet-a"
+vaultSync:
+  enabled: false
+applicationOwnerMail: smmwpf@postfinance.ch
+operationOwnerMail: smmwpf@postfinance.ch
+sysAppl: MQP
+burger:
+  monitoring:
+    receivers:
+      email:
+        to:
+        - smmwpf@postfinance.ch

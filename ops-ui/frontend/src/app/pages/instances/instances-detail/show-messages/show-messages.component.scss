@@ -1,0 +1,20 @@
+pf-link {
+  text-decoration: underline;
+}
+
+pf-link:hover {
+  cursor: pointer;
+}
+
+.title {
+  font-weight: bold;
+}
+
+.statusbox-max-bytes {
+  margin-bottom: 2vh;
+}
+
+.codeblock {
+  max-height: 300px;
+  overflow: auto;
+}

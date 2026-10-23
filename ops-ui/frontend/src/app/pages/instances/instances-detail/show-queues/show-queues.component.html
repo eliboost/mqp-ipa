@@ -1,0 +1,54 @@
+<pf-card class="col-md-12">
+  <pf-table
+    (selectedItemsChanged)="handleSelectedQueuesChange($event)"
+    [columnReorderingAllowed]="false"
+    [enableCellTextSelection]="true"
+    [heightConfig]="{heightMode: TableHeightMode.AUTO_HEIGHT}"
+    [items]="queuesForThisInstance"
+    [loading]="dataForQueuesTableLoading"
+    [menuConfig]="tableMenuConfigQueuesTable"
+    [mode]="TableMode.SELECT_MULTI"
+    [rowColor]="{evenOdd: true}"
+    [size]="TableSize.SMALL"
+    testSelector="table--queues-for-instance"
+  >
+    <pf-table-column
+      [header]="'INSTANCES.QUEUES_TABLE.COLUMN_TITLE_QUEUE' | translate"
+      [sortable]="true"
+      [widthConfig]="{resizable: true, minWidthPx: 200, flex: 1}"
+      path="name"
+    ></pf-table-column>
+    <pf-table-column
+      [header]="'INSTANCES.QUEUES_TABLE.COLUMN_TITLE_REPLICA' | translate"
+      [sortable]="true"
+      [widthConfig]="{resizable: true, minWidthPx: 70, maxWidthPx: 100, flex: 1}"
+      path="replica"
+    ></pf-table-column>
+    <pf-table-column
+      [contentProvider]="renderEnabledChip"
+      [header]="'INSTANCES.QUEUES_TABLE.COLUMN_TITLE_ENABLED' | translate"
+      [sortable]="false"
+      [widthConfig]="{resizable: true, minWidthPx: 50, maxWidthPx: 100, flex: 1}"
+      path="enabled"
+    ></pf-table-column>
+    <pf-table-column
+      [contentProvider]="renderPausedChip"
+      [header]="'INSTANCES.QUEUES_TABLE.COLUMN_TITLE_PAUSED' | translate"
+      [sortable]="false"
+      [widthConfig]="{resizable: true, minWidthPx: 50, maxWidthPx: 100, flex: 1}"
+      path="paused"
+    ></pf-table-column>
+    <pf-table-column
+      [header]="'INSTANCES.QUEUES_TABLE.COLUMN_TITLE_NUMBER_OF_MESSAGES' | translate"
+      [sortable]="false"
+      [widthConfig]="{resizable: true, minWidthPx: 50, maxWidthPx: 250, flex: 1}"
+      path="messageCount"
+    ></pf-table-column>
+    <pf-table-column
+      [header]="'INSTANCES.QUEUES_TABLE.COLUMN_TITLE_NUMBER_OF_CONSUMERS' | translate"
+      [sortable]="false"
+      [widthConfig]="{resizable: true, minWidthPx: 50, maxWidthPx: 250, flex: 1}"
+      path="consumerCount"
+    ></pf-table-column>
+  </pf-table>
+</pf-card>

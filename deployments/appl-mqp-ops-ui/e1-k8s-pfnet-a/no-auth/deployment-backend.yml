@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqp-ops-ui-backend-deployment
+  labels:
+    appl: mqp-ops-ui-backend
+spec:
+  # replicas: 2
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      appl: mqp-ops-ui-backend
+  template:
+    metadata:
+      annotations:
+        collectord.io/output: "splunk"
+        collectord.io/logs-index: "midwitd"
+      labels:
+        appl: mqp-ops-ui-backend
+    spec:
+      containers:
+        - name: backend
+          image: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/backend:0.0.0
+          imagePullPolicy: Always
+          ports:
+            - name: "http"
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /mqp-ops-ui/actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /mqp-ops-ui/actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /mqp-ops-ui/actuator/health/liveness
+              port: 8080
+            failureThreshold: 30
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          envFrom:
+            - secretRef:
+                name: backend                
+          resources:
+            limits:
+              memory: 500M
+            requests:
+              memory: 100M
+          volumeMounts:
+            - name: mqp-ops-ui-backend-config-map
+              mountPath: /usr/share/mqp-ops-ui/config
+            - mountPath: /etc/secrets/mqp
+              name: keystore-mqp
+              readOnly: true
+            - mountPath: /tmp/mqp-ops-ui-uploads
+              name: uploads
+      volumes:
+        - name: mqp-ops-ui-backend-config-map
+          configMap:
+            name: mqp-ops-ui-backend-config-map
+
+        - name: vault-secrets
+          secret:
+            secretName: backend
+        - name: keystore-mqp
+          secret:
+            secretName: ces-data-e1-mqp-ops-ui-store
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: mqp-ops-ui-upload-pvc

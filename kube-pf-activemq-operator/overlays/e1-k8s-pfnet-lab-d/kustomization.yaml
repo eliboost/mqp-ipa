@@ -1,0 +1,32 @@
+namespace: kube-pf-activemq
+resources:
+  - ../../base
+  - https://gitlab.pnet.ch/middleware/activemq/pf-activemq-operator/-/raw/main/config/crd/bases/pf-activemq-operator.pnet.ch_pfactivemqs.yaml
+patches:
+  - target:
+      kind: ClusterRole
+      name: pf-activemq-operator
+    path: clusterrole.yaml
+  - target:
+      kind: Deployment
+      name: pf-activemq-operator
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --artemis-image=middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --artemis-init-image=middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: -log-level=debug
+images:
+  - name: middleware-docker-staging-local.repo.pnet.ch/pf/middleware/pf-activemq-operator
+    newName: middleware-docker-staging-local.repo.pnet.ch/pf/middleware/pf-activemq-operator
+    newTag: 0.17.5
+helmCharts:
+  - name: pf-namespace
+    version: v1.9.0
+    namespace: kube-pf-activemq
+    valuesFile: values-pf-namespace.yaml
+    repo: https://repo.pnet.ch/artifactory/linux-cluster-helm-local/

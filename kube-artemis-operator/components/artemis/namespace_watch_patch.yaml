@@ -1,0 +1,15 @@
+- op: replace
+  path: /spec/template/spec/containers/0/env 
+  value:
+    - name: OPERATOR_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.labels['name']
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: WATCH_NAMESPACE
+      value: "*"
+    - name: ENABLE_WEBHOOKS
+      value: "false"

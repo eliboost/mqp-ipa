@@ -1,0 +1,12 @@
+<pf-grid>
+  @if (!!pageTitle) {
+    <pf-text
+      class="col-12"
+      textType="title"
+      [noMargin]="true"
+    >
+      {{ pageTitle }}
+    </pf-text>
+  }
+  <ng-content></ng-content>
+</pf-grid>

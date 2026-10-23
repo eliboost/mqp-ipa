@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: appl-mqp-ops-ui-no-auth-e1
+replicas:
+  - name: mqp-ops-ui-backend-deployment
+    count: 1
+  - name: mqp-ops-ui-frontend-deployment
+    count: 1
+images:
+  - name: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/backend
+    newName: middleware-docker-staging-local.repo.pnet.ch/pf/middleware/mqpopsui/backend
+    newTag: "20261009124409"
+  - name: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/frontend
+    newName: middleware-docker-staging-local.repo.pnet.ch/pf/middleware/mqpopsui/frontend
+    newTag: "20261009124411"
+  - name: middleware-docker.repo.pnet.ch/alpine/k8s
+    newTag: 1.37.1
+  - name: postfinance/vault-kubernetes-authenticator
+    newTag: 0.4.3
+  - name: postfinance/vault-kubernetes-synchronizer
+    newTag: 0.4.3
+resources:
+  - config-frontend.yml
+  - deployment-frontend.yml
+  - deployment-backend.yml
+  - httproute.yml
+  - external-secret-backend.yaml
+  - service.yml # use service directly instead of base, because we need nothing else from base
+  - pvc-uploads.yml
+configMapGenerator:
+  - name: mqp-ops-ui-backend-config-map
+    files:
+      - application.yml
+    options:
+      labels:
+        appl: mqp-ops-ui-appl

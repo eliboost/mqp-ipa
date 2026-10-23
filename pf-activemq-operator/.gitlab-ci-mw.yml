@@ -1,0 +1,40 @@
+include:
+  - project: middleware/pipeline-includes/pipelinekatalog
+    ref: v5.3.11
+    file: go-projects.yml
+
+# To match only release tags of the operator and not api tags
+create-release:
+  variables: 
+    GIT_CLIFF_TAG_PATTERN: "^v"
+
+# For each api/* submodule (detected by the presence of a go.mod), creates a
+# <submodule>/vX.Y.Z tag required by the Go module proxy when the submodule
+# directory has changed since its last tag. Adding a new api/v2 submodule is
+# picked up automatically without any changes here.
+tag-api-submodule:
+  stage: post-release
+  image: linux-docker-local.repo.pnet.ch/pf/create-go-app:0.49.4
+  rules:
+    - if: $CI_PROJECT_PATH != "middleware/activemq/pf-activemq-operator"
+      when: never
+    - if: $CI_COMMIT_TAG =~ /^v/
+      when: on_success
+    - when: never
+  variables:
+    GIT_STRATEGY: clone
+    GIT_DEPTH: "0"
+  script:
+    - |
+      for gomod in api/*/go.mod; do
+        module_dir=$(dirname "$gomod")
+        last_tag=$(git tag --sort=-version:refname | grep "^${module_dir}/" | head -1)
+        if [ -n "$last_tag" ] && git diff --quiet "${last_tag}" HEAD -- "${module_dir}/"; then
+          echo "No changes in ${module_dir}/ since ${last_tag}. Skipping."
+        else
+          new_tag="${module_dir}/${CI_COMMIT_TAG}"
+          echo "Creating ${new_tag}"
+          git tag "${new_tag}"
+          git push origin "${new_tag}"
+        fi
+      done

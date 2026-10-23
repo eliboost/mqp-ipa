@@ -1,0 +1,178 @@
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  # Broker-level metrics
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\"><>([^:]*):\\s(.*)"
+    attrNameSnakeCase: true
+    name: artemis_$2
+    type: GAUGE
+    labels:
+      broker: $1
+
+  # Address-level: special renames
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\"><>AddressLimitPercent:\\s(.*)"
+    name: artemis_limit_percent
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\"><>NumberOfPages:\\s(.*)"
+    name: artemis_number_of_pages
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\"><>RoutedMessageCount:\\s(.*)"
+    name: artemis_routed_message_count
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\"><>UnRoutedMessageCount:\\s(.*)"
+    name: artemis_unrouted_message_count
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+
+  # Address-level: general rule (snake_case, catches remaining attrs)
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\"><>([^:]*):\\s(.*)"
+    attrNameSnakeCase: true
+    name: artemis_$3
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+
+  # Queue-level: special renames
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\",\\s*subcomponent=queues,\\s*routing-type=\"([^\"]*)\",\\s*queue=\"([^\"]*)\"><>DeliveringCount:\\s(.*)"
+    name: artemis_delivering_message_count
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+      queue: $4
+
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\",\\s*subcomponent=queues,\\s*routing-type=\"([^\"]*)\",\\s*queue=\"([^\"]*)\"><>ScheduledCount:\\s(.*)"
+    name: artemis_scheduled_message_count
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+      queue: $4
+
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\",\\s*subcomponent=queues,\\s*routing-type=\"([^\"]*)\",\\s*queue=\"([^\"]*)\"><>DurableScheduledCount:\\s(.*)"
+    name: artemis_scheduled_durable_message_count
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+      queue: $4
+
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\",\\s*subcomponent=queues,\\s*routing-type=\"([^\"]*)\",\\s*queue=\"([^\"]*)\"><>DurableScheduledSize:\\s(.*)"
+    name: artemis_scheduled_durable_persistent_size
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+      queue: $4
+
+  # Queue-level: general rule
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\",\\s*subcomponent=queues,\\s*routing-type=\"([^\"]*)\",\\s*queue=\"([^\"]*)\"><>([^: ]*):\\s(.*)"
+    attrNameSnakeCase: true
+    name: artemis_$5
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+      queue: $4
+
+  # Topic-level: general rule
+  - pattern: "^org.apache.activemq.artemis<broker=\"([^\"]*)\",\\s*component=addresses,\\s*address=\"([^\"]*)\",\\s*subcomponent=topics,\\s*routing-type=\"([^\"]*)\",\\s*topic=\"([^\"]*)\"><>([^: ]*):\\s(.*)"
+    attrNameSnakeCase: true
+    name: artemis_$5
+    type: GAUGE
+    labels:
+      broker: $1
+      address: $2
+      topic: $4
+
+  # -----------------------------------------------------------------------
+  # JVM THREAD metrics — rename to match Micrometer naming
+  # -----------------------------------------------------------------------
+
+  - pattern: "^java.lang<type=Threading><>ThreadCount:\\s(.*)"
+    name: jvm_threads_live_threads
+    type: GAUGE
+
+  - pattern: "^java.lang<type=Threading><>DaemonThreadCount:\\s(.*)"
+    name: jvm_threads_daemon_threads
+    type: GAUGE
+
+  - pattern: "^java.lang<type=Threading><>PeakThreadCount:\\s(.*)"
+    name: jvm_threads_peak_threads
+    type: GAUGE
+
+  - pattern: "^java.lang<type=Threading><>TotalStartedThreadCount:\\s(.*)"
+    name: jvm_threads_started_threads_total
+    type: COUNTER
+
+  # -----------------------------------------------------------------------
+  # JVM MEMORY metrics — reshape to match Micrometer {area, id} labels
+  # -----------------------------------------------------------------------
+
+  - pattern: "^java.lang<type=MemoryPool, name=(.*)><>Usage.used:\\s(.*)"
+    name: jvm_memory_used_bytes
+    type: GAUGE
+    labels:
+      id: $1
+      area: heap    # approximate — see note below
+
+  # -----------------------------------------------------------------------
+  # PROCESS metrics — rename to match Micrometer naming
+  # -----------------------------------------------------------------------
+
+  - pattern: "^java.lang<type=OperatingSystem><>OpenFileDescriptorCount:\\s(.*)"
+    name: process_files_open_files
+    type: GAUGE
+
+  - pattern: "^java.lang<type=OperatingSystem><>MaxFileDescriptorCount:\\s(.*)"
+    name: process_files_max_files
+    type: GAUGE
+
+  - pattern: "^java.lang<type=OperatingSystem><>ProcessCpuTime:\\s(.*)"
+    name: process_cpu_time_ns_total
+    type: COUNTER
+
+  - pattern: "^java.lang<type=Runtime><>Uptime:\\s(.*)"
+    name: process_uptime_seconds
+    # Uptime is in ms, needs conversion — JMX exporter has no built-in scaling
+    # You may need to handle unit conversion in recording rules in Prometheus instead
+    type: GAUGE
+
+  # -----------------------------------------------------------------------
+  # JVM BUFFER metrics — rename 'pool' label to 'id'
+  # -----------------------------------------------------------------------
+
+  - pattern: "^java.nio<type=BufferPool, name=(.*)><>MemoryUsed:\\s(.*)"
+    name: jvm_buffer_memory_used_bytes
+    type: GAUGE
+
+  - pattern: "^java.nio<type=BufferPool, name=(.*)><>Count:\\s(.*)"
+    name: jvm_buffer_count_buffers
+    type: GAUGE
+
+  - pattern: "^java.nio<type=BufferPool, name=(.*)><>TotalCapacity:\\s(.*)"
+    name: jvm_buffer_total_capacity_bytes
+    type: GAUGE
+
+  - pattern: "^java.lang<type=OperatingSystem><>AvailableProcessors:\\s(.*)"
+    name: system_cpu_count
+    type: GAUGE
+
+  - pattern: "^java.lang<type=OperatingSystem><>SystemLoadAverage:\\s(.*)"
+    name: system_load_average_1m
+    type: GAUGE

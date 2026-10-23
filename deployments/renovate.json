@@ -1,0 +1,84 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>middleware/buildenv/renovate-presets:k8s-deployment"
+  ],
+  "packageRules": [
+    {
+      "matchFileNames": [
+        "appl-mqp-e2e/p*/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://pfportal.pnet.ch/argocd/applications/p1-k8s-nucleus-a-appl-mqp-e2e-p1",
+        "ArgoCD: https://pfportal.pnet.ch/argocd/applications/p1-k8s-pcilight-a-appl-mqp-e2e-p1"
+      ]
+    },
+    {
+      "matchFileNames": [
+        "appl-mqp-e2e/t*/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://pfportal.pnet.ch/argocd-itd/applications/t1-k8s-pcilight-a-appl-mqp-e2e-t1"
+      ]
+    },
+    {
+      "matchFileNames": [
+        "appl-mqp-e2e/e*/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://pfportal.pnet.ch/argocd-itd/applications/e1-k8s-pfnet-a-appl-mqp-e2e-e1"
+      ]
+    },
+    {
+      "matchFileNames": [
+        "appl-mqp-e2e/e1-k8s-pfnet-lab-d/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://argocd-lab.e1-pfnet-lab-d.pnet.ch/argocd/applications/e1-k8s-pfnet-lab-d-appl-mqp-e2e-e1"
+      ]
+    },
+    {
+      "matchFileNames": [
+        "appl-mqp-merger/p*/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://pfportal.pnet.ch/argocd/applications/p1-k8s-management-a-appl-mqp-merger-p1"
+      ]
+    },
+    {
+      "matchFileNames": [
+        "appl-mqp-ops-ui/e*/no-auth/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://pfportal.pnet.ch/argocd-itd/applications/e1-k8s-pfnet-a-appl-mqp-ops-ui-no-auth-e1"
+      ],
+      "automerge": false
+    },
+    {
+      "matchFileNames": [
+        "appl-mqp-ops-ui/e*/with-auth/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://pfportal.pnet.ch/argocd-itd/applications/e1-k8s-pfnet-a-appl-mqp-ops-ui-with-auth-e1"
+      ],
+      "automerge": false
+    },
+    {
+      "matchFileNames": [
+        "appl-mqp-ops-ui/p*/nonprod/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://pfportal.pnet.ch/argocd/applications/p1-k8s-management-a-appl-mqp-ops-ui-nonprod-p1"
+      ],
+      "automerge": false
+    },
+    {
+      "matchFileNames": [
+        "appl-mqp-ops-ui/p*/prod/**"
+      ],
+      "prBodyNotes": [
+        "ArgoCD: https://pfportal.pnet.ch/argocd/applications/p1-k8s-management-a-appl-mqp-ops-ui-prod-p1"
+      ]
+    }
+  ]
+}

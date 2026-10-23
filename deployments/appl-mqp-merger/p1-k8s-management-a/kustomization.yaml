@@ -1,0 +1,22 @@
+namespace: appl-mqp-merger-p1
+resources:
+- ../base
+- external-secret-merger-bot.yaml
+- external-secret-mqp-merger.yaml
+images:
+- name: instances-merger
+  newName: middleware-docker-local.repo.pnet.ch/pf/middleware/activemq-merge-operator
+  newTag: 0.14.5
+replicas:
+- count: 2
+  name: instances-merger
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+patches:
+- path: deployment.yaml
+  target:
+    kind: Deployment
+configMapGenerator:
+- name: merge-config
+  files:
+  - merge-config.yaml

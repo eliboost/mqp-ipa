@@ -1,0 +1,84 @@
+site_name: ActiveMQ Artemis (MQP)
+site_url: https://developer.pnet.ch/docs/default/Resource/activemq
+site_description: ActiveMQ Artemis @ Postfinance
+docs_dir: docs
+nav:
+  - Userguide:
+      - index.md
+      - Overview: overview.md
+      - Getting Started: getting-started.md
+      - About:
+          - about/index.md
+          - Contact Us: about/contact.md
+      - Concepts:
+          - concepts/index.md
+          - Topology & Availability: concepts/topology-availability.md
+          - Naming: concepts/naming.md
+          - Dead Letter Queue: concepts/dead-letter-queue.md
+          - Expiry Queue: concepts/expiry-queue.md
+          - Lifecycle: concepts/lifecycle.md
+      - HowTo:
+          - howto/index.md
+          - Self-Service: howto/self-service.md
+          - Configuration:
+              - howto/configuration/index.md
+              - Broker: howto/configuration/broker.md
+              - Client: howto/configuration/client.md
+          - Increase Storage: howto/increase-storage.md
+          - Delete Instance: howto/delete-instance.md
+          - Alarming: howto/alarming.md
+          - Observability: howto/observability.md
+          - Migrate to ActiveMQ: howto/migrate-to-activemq.md
+          - Post-Migration Tests: howto/post-migration-tests.md
+          - OPS-UI: howto/operations-ui.md
+          - Avoid double delivery: howto/avoid-double-delivery.md
+          - JET: howto/jet.md
+      - Examples:
+          - examples/index.md
+          - Limit Message Size: examples/limit-message-size.md
+          - Dirm Migration: examples/dirm-migration.md
+      - Common Pitfalls:
+          - common-pitfalls/index.md
+          - Known Exceptions: common-pitfalls/known-exceptions.md
+          - Wrong message selector: common-pitfalls/wrong-message-selector.md
+      - Reference:
+          - reference/index.md
+          - PFActiveMQ Instances API: reference/api_reference.md
+          - Platform: reference/platform.md
+  - Infrastructure:
+      - infra/index.md
+      - Components:
+          - infra/components/index.md
+          - OPS-UI: infra/components/ops-ui.md
+      - Tagesdienst:
+          - infra/tagesdienst/index.md
+          - Merge Requests: infra/tagesdienst/merge-requests.md
+      - Guides:
+          - infra/guides/index.md
+          - Certificate: infra/guides/certificate.md
+          - Artemis Console: infra/guides/artemis-console.md
+          - Advanced Features: infra/guides/advanced-features.md
+          - Platform: infra/guides/platform.md
+          - JET: infra/guides/jet.md
+  - Blog:
+      - blog/index.md
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.expand
+    - navigation.top
+plugins:
+  - blog:
+      archive: false
+      blog_toc: true
+  - techdocs-core
+  - rss:
+        match_path: blog/posts/.*
+        date_from_meta:
+            as_creation: date
+        abstract_chars_count: 10000
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'

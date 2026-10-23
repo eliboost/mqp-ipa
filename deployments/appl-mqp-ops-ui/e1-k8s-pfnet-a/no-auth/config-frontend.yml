@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mqp-ops-ui-frontend-config-map
+  labels:
+    appl: mqp-ops-ui-frontend
+data:
+  app-config.json: |
+    {
+        "production": false,
+        "currentEnv": "DEV",
+        "allowSendMessages": true,
+        "pageSizeWhileFetchingMessages": 200
+    }

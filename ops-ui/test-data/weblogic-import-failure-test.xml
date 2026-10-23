@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Weblogic JMS Import - Failure Test File
+  =========================================
+  5 messages, 3 fail, 2 succeed → expected HTTP 207
+
+  Message 0 — SUCCEEDS : valid text message
+  Message 1 — FAILS    : JMSMessageID has no dot → split("\\.")[1] → ArrayIndexOutOfBoundsException in toXmlMessage()
+  Message 2 — FAILS    : JMSMessageID has non-Long after dot → NumberFormatException in toXmlMessage()
+  Message 3 — FAILS    : <Bytes> body is not valid Base64 → IllegalArgumentException in applyToClientMessage()
+  Message 4 — SUCCEEDS : valid bytes message with Base64-encoded body
+
+  Namespace: all elements inside <WLJMSMessage> use http://www.bea.com/WLS/JMS/Message
+-->
+<JMSMessageExport xmlns:wl="http://www.bea.com/WLS/JMS/Message">
+
+  <!-- MESSAGE 0: valid text message — should succeed -->
+  <wl:WLJMSMessage>
+    <wl:Header>
+      <wl:JMSMessageID>ID:1001.56789001</wl:JMSMessageID>
+      <wl:JMSDeliveryMode>Persistent</wl:JMSDeliveryMode>
+      <wl:JMSDestination>
+        <wl:Destination name="testmodule@TEST.QUEUE" serverName="server1" applicationName="app1" moduleName="testmodule"/>
+      </wl:JMSDestination>
+      <wl:JMSExpiration>0</wl:JMSExpiration>
+      <wl:JMSPriority>4</wl:JMSPriority>
+      <wl:JMSRedelivered>false</wl:JMSRedelivered>
+      <wl:JMSTimestamp>1751328000</wl:JMSTimestamp>
+      <wl:Properties>
+        <wl:property name="Header_messageId">
+          <wl:String>MSG-OK-001</wl:String>
+        </wl:property>
+        <wl:property name="retryCount">
+          <wl:Int>0</wl:Int>
+        </wl:property>
+      </wl:Properties>
+    </wl:Header>
+    <wl:Body>
+      <wl:Text>Hello from message 0 — valid text message</wl:Text>
+    </wl:Body>
+  </wl:WLJMSMessage>
+
+  <!-- MESSAGE 1: FAILS — JMSMessageID has no dot → split("\\.")[1] → ArrayIndexOutOfBoundsException -->
+  <wl:WLJMSMessage>
+    <wl:Header>
+      <!-- "ID:NODOT" has no '.' → split("\\.") returns ["ID:NODOT"] → index [1] throws AIOOBE -->
+      <wl:JMSMessageID>ID:NODOT</wl:JMSMessageID>
+      <wl:JMSDeliveryMode>Persistent</wl:JMSDeliveryMode>
+      <wl:JMSDestination>
+        <wl:Destination name="testmodule@TEST.QUEUE" serverName="server1" applicationName="app1" moduleName="testmodule"/>
+      </wl:JMSDestination>
+      <wl:JMSExpiration>0</wl:JMSExpiration>
+      <wl:JMSPriority>4</wl:JMSPriority>
+      <wl:JMSRedelivered>false</wl:JMSRedelivered>
+      <wl:JMSTimestamp>1751328000</wl:JMSTimestamp>
+      <wl:Properties>
+        <wl:property name="Header_messageId">
+          <wl:String>MSG-FAIL-001</wl:String>
+        </wl:property>
+      </wl:Properties>
+    </wl:Header>
+    <wl:Body>
+      <wl:Text>This message will fail before body is processed</wl:Text>
+    </wl:Body>
+  </wl:WLJMSMessage>
+
+  <!-- MESSAGE 2: FAILS — JMSMessageID has non-Long after dot → NumberFormatException in Long.parseLong() -->
+  <wl:WLJMSMessage>
+    <wl:Header>
+      <!-- "NOT_A_LONG" after the dot cannot be parsed as Long -->
+      <wl:JMSMessageID>ID:1003.NOT_A_LONG</wl:JMSMessageID>
+      <wl:JMSDeliveryMode>Persistent</wl:JMSDeliveryMode>
+      <wl:JMSDestination>
+        <wl:Destination name="testmodule@TEST.QUEUE" serverName="server1" applicationName="app1" moduleName="testmodule"/>
+      </wl:JMSDestination>
+      <wl:JMSExpiration>0</wl:JMSExpiration>
+      <wl:JMSPriority>4</wl:JMSPriority>
+      <wl:JMSRedelivered>false</wl:JMSRedelivered>
+      <wl:JMSTimestamp>1751328000</wl:JMSTimestamp>
+      <wl:Properties>
+        <wl:property name="Header_messageId">
+          <wl:String>MSG-FAIL-002</wl:String>
+        </wl:property>
+      </wl:Properties>
+    </wl:Header>
+    <wl:Body>
+      <wl:Text>This message will also fail before body is processed</wl:Text>
+    </wl:Body>
+  </wl:WLJMSMessage>
+
+  <!-- MESSAGE 3: FAILS — <Bytes> content is not valid Base64 → IllegalArgumentException in applyToClientMessage() -->
+  <wl:WLJMSMessage>
+    <wl:Header>
+      <wl:JMSMessageID>ID:1004.56789004</wl:JMSMessageID>
+      <wl:JMSDeliveryMode>Persistent</wl:JMSDeliveryMode>
+      <wl:JMSDestination>
+        <wl:Destination name="testmodule@TEST.QUEUE" serverName="server1" applicationName="app1" moduleName="testmodule"/>
+      </wl:JMSDestination>
+      <wl:JMSExpiration>0</wl:JMSExpiration>
+      <wl:JMSPriority>4</wl:JMSPriority>
+      <wl:JMSRedelivered>false</wl:JMSRedelivered>
+      <wl:JMSTimestamp>1751328000</wl:JMSTimestamp>
+      <wl:Properties>
+        <wl:property name="Header_messageId">
+          <wl:String>MSG-FAIL-003</wl:String>
+        </wl:property>
+      </wl:Properties>
+    </wl:Header>
+    <wl:Body>
+      <!-- Raw string stored as-is in XmlMessage.body, then Base64.decode() is called → throws -->
+      <wl:Bytes>!!INVALID BASE64 — NOT DECODABLE!!</wl:Bytes>
+    </wl:Body>
+  </wl:WLJMSMessage>
+
+  <!-- MESSAGE 4: valid bytes message — should succeed, proves processing continues after failures -->
+  <wl:WLJMSMessage>
+    <wl:Header>
+      <wl:JMSMessageID>ID:1005.56789005</wl:JMSMessageID>
+      <wl:JMSDeliveryMode>Persistent</wl:JMSDeliveryMode>
+      <wl:JMSDestination>
+        <wl:Destination name="testmodule@TEST.QUEUE" serverName="server1" applicationName="app1" moduleName="testmodule"/>
+      </wl:JMSDestination>
+      <wl:JMSExpiration>0</wl:JMSExpiration>
+      <wl:JMSPriority>4</wl:JMSPriority>
+      <wl:JMSRedelivered>false</wl:JMSRedelivered>
+      <wl:JMSTimestamp>1751328000</wl:JMSTimestamp>
+      <wl:Properties>
+        <wl:property name="Header_messageId">
+          <wl:String>MSG-OK-002</wl:String>
+        </wl:property>
+        <wl:property name="correlationId">
+          <wl:Long>9876543210</wl:Long>
+        </wl:property>
+      </wl:Properties>
+    </wl:Header>
+    <wl:Body>
+      <!-- "Hello World" as valid Base64 — Base64.decode() succeeds -->
+      <wl:Bytes>SGVsbG8gV29ybGQ=</wl:Bytes>
+    </wl:Body>
+  </wl:WLJMSMessage>
+
+</JMSMessageExport>

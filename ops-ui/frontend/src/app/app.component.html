@@ -1,0 +1,42 @@
+<pf-portal-header
+  [appInfos]="appInfos"
+  [appTitle]="'GENERAL.APP_TITLE' | translate"
+  [appVersion]="version"
+  [environment]="PfEnvironment.PROD"
+  [menuConfiguration]="portalHeaderMenuConfiguration"
+  [titleAreaConfiguration]="portalHeaderTitleAreaConfiguration"
+  [userMenuText]="isActiveLanguage('de') ? 'Deutsch' : 'English'"
+>
+  <pf-menu-item
+    [action]="setLanguageEn"
+    [active]="isActiveLanguage('en')"
+    slot="user-menu"
+    testSelector="user-menu--lang-en"
+  >
+    English
+  </pf-menu-item>
+  <pf-menu-item
+    [action]="setLanguageDe"
+    [active]="isActiveLanguage('de')"
+    slot="user-menu"
+    testSelector="user-menu--lang-de"
+  >
+    Deutsch
+  </pf-menu-item>
+</pf-portal-header>
+
+@if (contexts$ | async; as contexts) {
+  <pf-page-container full-width-content>
+    @for (context of contexts; track context.name) {
+      <pf-menu-item
+        (click)="goToInstance(context.name)"
+        [active]="isActiveRoute('/' + context.name + '/instances')"
+        [label]="context.name"
+        slot="app-menu"
+        testSelector="app-menu--{{ context.name }}"
+        visual="menu_app"
+      ></pf-menu-item>
+    }
+    <router-outlet></router-outlet>
+  </pf-page-container>
+}

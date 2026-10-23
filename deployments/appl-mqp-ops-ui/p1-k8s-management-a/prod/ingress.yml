@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mqp-ops-ui-ingress
+  labels:
+    app: mqp-ops-ui-appl
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  tls:
+    - hosts:
+        - mqp-ops-ui.p1-management-a.pnet.ch
+  rules:
+    - host: mqp-ops-ui.p1-management-a.pnet.ch
+      http:
+        paths:
+          - path: /mqp-ops-ui
+            pathType: Prefix
+            backend:
+              service:
+                name: mqp-ops-ui-frontend-svc
+                port:
+                  number: 4200
+          - path: /mqp-ops-ui/api
+            pathType: Prefix
+            backend:
+              service:
+                name: mqp-ops-ui-backend-svc
+                port:
+                  number: 8080
+          - path: /saml2/sp/acs/post
+            pathType: Prefix
+            backend:
+              service:
+                name: mqp-ops-ui-backend-svc
+                port:
+                  number: 8080

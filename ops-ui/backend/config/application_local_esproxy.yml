@@ -1,0 +1,74 @@
+# https://confluence.pnet.ch/display/SMMW/AplatSecurityProviderSpring
+aplat:
+  security:
+    provider:
+      signer-certificate-alias: 'esproxysigner'
+      signer-truststore-file: '/usr/share/mqp-ops-ui/trust/esproxysigner_truststore_keystore.jks'
+
+application:
+  aplat:
+    enabled: true
+  platform: LOCAL
+  platformHasDefaultRole: false
+  jolokiaApiPort: 443
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      base-path: "/mqp-ops-ui/actuator"
+      exposure:
+        include: health,info,loggers,metrics,prometheus,env,hawtio,jolokia
+
+logging:
+  level:
+    # General logs from mqpopsui app
+    ch.post.pf.mqpopsui.general: DEBUG
+
+    # Audit logs from mqpopsui app
+    ch.post.pf.mqpopsui.audit: DEBUG
+
+    # All other logs
+    root: INFO
+
+    # Provider (ebenfalls das spring property spring.websecurity.debug auf true setzen)
+    ch.postfinance.aplat.security.providers: DEBUG
+    org.springframework.security: DEBUG
+
+    # Consumer
+    ch.post.pf.mw.fw.security.authentication: DEBUG
+    ch.postfinance.aplat.security.compauth: DEBUG
+
+server:
+  port: 8085
+  servlet:
+    session:
+      cookie:
+        # Muss JSESSIONID sein um dasselbe Login Verhalten wie auf T1 sicherzustellen. Siehe RETAINCOOKIES
+        # https://confluence.pnet.ch/display/SMMW/AplatSecurityProxyCommon
+        name: JSESSIONID
+
+spring:
+  websecurity:
+    debug: true
+  profiles:
+    active: nonlocal
+  ssl:
+    bundle:
+      jks:
+        client-bundle:
+          # Values for e1-pfnet-lab-d.pnet.ch
+          #keystore:
+          #location: "classpath:e1-pfnet-lab-d-truststore-keystore.jks"
+          #password: "[n9A8!FjzjxZm{bBBu7atTc(DgaU_HCK-[Dkr6p[+!5nBnCt"
+          # Values for e1-pfnet-a.pnet.ch
+          keystore:
+            location: "classpath:e1-pfnet-a-truststore-keystore.jks"
+            password: "_DSGc-xtwrVfp0HcNCHDc9x1uHtSeGZ{"
+
+self-service-config:
+  file:
+    # path: /usr/share/mqp-ops-ui/config/self-service-config-e1-pfnet-lab-d.yml
+    path: /usr/share/mqp-ops-ui/config/self-service-config-e1.yml

@@ -1,0 +1,39 @@
+backend-test:
+  stage: test
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/java21:5.9.0
+  script:
+    - cd backend
+    - mvn test -s $MAVEN_SETTINGS_XML_PATH
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+backend-staging:
+  extends: .docker-login
+  stage: build
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/java21:5.9.0
+  script:
+    - export CAL_VERSION=$(date -u '+%Y%m%d%H%M%S')
+    - cd backend
+    - mvn -DskipTests clean package -s $MAVEN_SETTINGS_XML_PATH
+    - docker build --cache-from $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_BACKEND:$CAL_VERSION --tag $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_BACKEND:$CAL_VERSION .
+    - docker push $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_BACKEND:$CAL_VERSION
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+backend-release:
+  extends: .docker-login
+  stage: build
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/java21:5.9.0
+  variables:
+    DOCKER_REGISTRY: $ARTIFACTORY_DOCKER_URL_RELEASES
+  script:
+    - export VERSION=${CI_COMMIT_TAG#v}
+    - mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false -s $MAVEN_SETTINGS_XML_PATH
+    - cd backend
+    - mvn -DskipTests clean package -s $MAVEN_SETTINGS_XML_PATH
+    - docker build --cache-from $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_BACKEND:$VERSION --tag $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_BACKEND:$VERSION .
+    - docker push $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_BACKEND:$VERSION
+  rules:
+    - if: '$CI_COMMIT_TAG'

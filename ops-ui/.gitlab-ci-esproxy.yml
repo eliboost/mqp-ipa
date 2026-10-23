@@ -1,0 +1,30 @@
+esproxy-docker-image-staging:
+  extends: .docker-login
+  stage: build
+  tags:
+    - docker
+    - linux
+  script:
+    - export CAL_VERSION=$(date -u '+%Y%m%d%H%M%S')
+    - cd esproxy-image
+    - docker build --build-arg ESP_CONFIGFILE="esproxy-config.xml" --cache-from $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_ESPROXY:$CAL_VERSION --tag $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_ESPROXY:$CAL_VERSION .
+    - docker push $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_ESPROXY:$CAL_VERSION
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+esproxy-docker-image-release:
+  extends: .docker-login
+  stage: build
+  tags:
+    - docker
+    - linux
+  variables:
+    DOCKER_REGISTRY: $ARTIFACTORY_DOCKER_URL_RELEASES
+  script:
+    - export VERSION=${CI_COMMIT_TAG#v}
+    - cd esproxy-image
+    - docker build --build-arg ESP_CONFIGFILE="esproxy-config.xml" --cache-from $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_ESPROXY:$VERSION --tag $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_ESPROXY:$VERSION .
+    - docker push $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_ESPROXY:$VERSION
+  rules:
+    - if: '$CI_COMMIT_TAG'

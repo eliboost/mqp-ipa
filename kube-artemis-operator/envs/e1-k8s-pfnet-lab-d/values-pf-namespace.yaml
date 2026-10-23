@@ -1,0 +1,15 @@
+global:
+  cluster_id: "e1-k8s-pfnet-lab-d"
+vaultSync:
+  enabled: false
+labels:
+    postfinance.ch/network-role: kube-artemis-activemq
+applicationOwnerMail: smmwpf@postfinance.ch
+operationOwnerMail: smmwpf@postfinance.ch
+sysAppl: MQP
+burger:
+  monitoring:
+    receivers:
+      email:
+        to:
+        - smmwpf@postfinance.ch

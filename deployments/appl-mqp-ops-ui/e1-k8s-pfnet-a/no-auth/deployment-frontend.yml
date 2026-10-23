@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqp-ops-ui-frontend-deployment
+  labels:
+    appl: mqp-ops-ui-frontend
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      appl: mqp-ops-ui-frontend
+  template:
+    metadata:
+      labels:
+        appl: mqp-ops-ui-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: middleware-docker-local.repo.pnet.ch/pf/middleware/mqpopsui/frontend:0.0.0
+          imagePullPolicy: Always
+          ports:
+            - name: "http"
+              containerPort: 4200
+              protocol: TCP
+          resources:
+            limits:
+              memory: 500M
+            requests:
+              memory: 100M
+          volumeMounts:
+            - name: app-config-map
+              mountPath: /usr/share/nginx/html/mqp-ops-ui/assets/config
+            - name: aplat-trust
+              mountPath: /keybox/aplat-trust
+              readOnly: true         
+            - name: pki-dev-store
+              mountPath: /keybox/pki/
+              readOnly: true
+      volumes:
+        - name: aplat-trust
+          secret:
+            secretName: ces-data-e1-shared-aplatesproxy-dev-store        
+        - name: pki-dev-store
+          secret:
+            secretName: ces-data-e1-shared-pki-dev-store
+        - name: app-config-map
+          configMap: 
+             name: mqp-ops-ui-frontend-config-map

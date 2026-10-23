@@ -1,0 +1,5 @@
+authors:
+  middleware:
+    name: DT Middleware
+    description: Team responsible for the development and maintenance of the ActiveMQ Artemis service at Postfinance.
+    avatar: https://gitlab.pnet.ch/uploads/-/system/group/avatar/43339/cq5dam.web.1280.1280.png

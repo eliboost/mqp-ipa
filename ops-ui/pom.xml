@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ch.postfinance.activemq.mqpopsui</groupId>
+    <artifactId>mqp-ops-ui-root</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <!-- ======================================================================================= -->
+    <!-- = Submodules = -->
+    <!-- ======================================================================================= -->
+    <modules>
+        <module>backend</module>
+    </modules>
+
+    <properties>
+        <docker.tag>${project.version}</docker.tag>
+
+        <!-- ======================================================================================= -->
+        <!-- = General Settings = -->
+        <!-- ======================================================================================= -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- ======================================================================================= -->
+        <!-- = Dependency Versions = -->
+        <!-- ======================================================================================= -->
+
+        <jdk-version>21</jdk-version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+
+        <aplat-alarming-version>100.0.2</aplat-alarming-version>
+        <aplat-provider-spring7-version>100.0.2</aplat-provider-spring7-version>
+
+        <!-- Version strings of referenced Third-Party Libraries -->
+        <spring-boot-version>4.1.2</spring-boot-version>
+        <commons-compress-version>1.28.0</commons-compress-version>
+        <commons-io-version>2.22.0</commons-io-version>
+
+        <!-- Maven-specific version numbers -->
+        <maven-clean-plugin-version>3.4.0</maven-clean-plugin-version>
+        <maven-compiler-plugin-version>3.16.0</maven-compiler-plugin-version>
+        <maven-download-plugin-version>1.9.0</maven-download-plugin-version>
+        <maven-failsafe-plugin-version>2.19.1</maven-failsafe-plugin-version>
+        <maven-install-plugin-version>3.2.0</maven-install-plugin-version>
+        <maven-git-commit-id-plugin-version>5.0.1</maven-git-commit-id-plugin-version>
+        <maven-jar-plugin-version>3.5.1</maven-jar-plugin-version>
+        <jaxb3-maven-plugin.version>2.2.1</jaxb3-maven-plugin.version>
+        <jaxb2-maven-plugin.version>3.1.0</jaxb2-maven-plugin.version>
+        <maven-release-plugin-version>2.5.3</maven-release-plugin-version>
+        <maven-replacer-plugin-version>1.5.3</maven-replacer-plugin-version>
+        <maven-resources-plugin-version>3.3.1</maven-resources-plugin-version>
+        <maven-surefire-plugin-version>3.6.0</maven-surefire-plugin-version>
+        <openapi-generator-maven-plugin-version>7.7.0</openapi-generator-maven-plugin-version>
+        <flatten-maven-plugin-version>1.8.0</flatten-maven-plugin-version>
+        <frontend-maven-plugin-version>1.15.0</frontend-maven-plugin-version>
+        <codehaus-build-helper-plugin-version>1.12</codehaus-build-helper-plugin-version>
+        <mockito.version>5.20.0</mockito.version>
+        <lombok.version>1.18.48</lombok.version>
+        <sonar-maven-plugin-version>3.11.0.3922</sonar-maven-plugin-version>
+        <exec-maven-plugin-version>3.6.4</exec-maven-plugin-version>
+    </properties>
+
+    <!-- ======================================================================================= -->
+    <!-- = Dependency Management = -->
+    <!-- ======================================================================================= -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- =============================================================================== -->
+            <!-- = PF Internal Dependencies = -->
+            <!-- =============================================================================== -->
+
+            <!-- APLAT- and other PF-Components -->
+            <dependency>
+                <groupId>ch.postfinance.aplat</groupId>
+                <artifactId>aplat-alarming</artifactId>
+                <version>${aplat-alarming-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.postfinance.aplat</groupId>
+                <artifactId>aplat-provider-spring7</artifactId>
+                <version>${aplat-provider-spring7-version}</version>
+            </dependency>
+
+            <!-- =============================================================================== -->
+            <!-- = Third-Party Dependencies = -->
+            <!-- =============================================================================== -->
+
+            <!-- Spring Boot -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <type>pom</type>
+                <version>${spring-boot-version}</version>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Apache Commons -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons-compress-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons-io-version}</version>
+            </dependency>
+            
+                    <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+            <dependency>
+                <groupId>io.hawt</groupId>
+                <artifactId>hawtio-springboot</artifactId>
+                <version>${hawtio-version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <finalName>${project.artifactId}</finalName>
+
+        <pluginManagement>
+            <!-- ======================================================================================= -->
+            <!-- = Configuration of Maven Plugins = -->
+            <!-- ======================================================================================= -->
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin-version}</version>
+                    <configuration>
+                        <source>${jdk-version}</source>
+                        <target>${jdk-version}</target>
+                        <debug>true</debug>
+                        <parameters>true</parameters>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin-version}</version>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <logback.configurationFile>logback-maven-surefire-plugin.xml</logback.configurationFile>
+                        </systemPropertyVariables>
+                        <argLine>-Xshare:off</argLine>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${maven-install-plugin-version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin-version}</version>
+                    <configuration>
+                        <archive>
+                            <manifest>
+                                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                                <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                            </manifest>
+                        </archive>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot-version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin-version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>${flatten-maven-plugin-version}</version>
+                    <configuration>
+                        <updatePomFile>true</updatePomFile>
+                        <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>flatten</id>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>flatten</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>flatten.clean</id>
+                            <phase>clean</phase>
+                            <goals>
+                                <goal>clean</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <scm>
+        <connection>scm:git@gitlab.pnet.ch:middleware/activemq/ops-ui-code.git</connection>
+        <developerConnection>scm:git@gitlab.pnet.ch:middleware/activemq/ops-ui-code.git</developerConnection>
+        <url>scm:git@gitlab.pnet.ch:middleware/activemq/ops-ui-code.git</url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <name>middleware-maven-releases-local</name>
+            <url>https://repo.pnet.ch/artifactory/middleware-maven-releases-local</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>middleware-maven-snapshots-local</name>
+            <url>https://repo.pnet.ch/artifactory/middleware-maven-snapshots-local</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+</project>

@@ -1,0 +1,232 @@
+{
+  "GENERAL": {
+    "APP_TITLE": "MQP Operations UI"
+  },
+  "INSTANCES": {
+    "ADD_MESSAGE_FORM": {
+      "BUTTON_CANCEL": "Cancel",
+      "BUTTON_EMPTY_FORM": "Reset form",
+      "BUTTON_SUBMIT": "Send",
+      "HEADER_COMMPATTERN": "Header_commPattern",
+      "HEADER_MANDANTID": "Header_mandantId",
+      "HEADER_MESSAGEID": "Header_messageId",
+      "HEADER_MESSAGETYPE": "Header_messageType",
+      "HEADER_PRIORITY": "Header_priority",
+      "HEADER_RECEIVER": "Header_receiver",
+      "HEADER_SENDER": "Header_sender",
+      "HEADER_SENDERPLATTFORM": "Header_senderPlattform",
+      "INVALID_MESSAGES": {
+        "GENERAL": "Field is invalid.",
+        "MAX_LENGTH": "Field contains too many characters.",
+        "PATTERN": "Field contains invalid characters.",
+        "REQUIRED": "Mandatory field"
+      },
+      "MESSAGE_CONTENT": "Message body",
+      "TITLE": "Add a message to the queue {{ queue }}",
+      "BULK_IMPORT_FILE_SIZE": "Max File Size: 500MB",
+      "BULK_IMPORT_READY_TO_IMPORT": "{{ count }} message(s) ready to import",
+      "BULK_IMPORT_PROGRESS": "Importing messages... done: {{done}}, total: {{total}}, failed: {{failed}}"
+    },
+    "DIALOGS": {
+      "DELETE_MESSAGES": {
+        "MESSAGE": "Should the messages with MessageIDs {{ messages }} really be deleted?",
+        "BLOCK_SIZE": "Block size",
+        "BLOCK_SIZE_ERROR": "Block size must be at least 1",
+        "BLOCK_SIZE_HINT": "Recommended: {{ recommended }}",
+        "BUTTON_CANCEL": "Cancel",
+        "BUTTON_DELETE": "Delete",
+        "QUEUE": "Queue",
+        "TITLE": "Delete messages",
+        "MESSAGEIDS": "MessageIDs",
+        "ALL_MESSAGES_LABEL": "All messages will be deleted"
+      },
+      "DELETE_MESSAGES_CONFIRM": {
+        "MESSAGE": "Should the messages with MessageIDs {{ messages }} really be deleted?",
+        "TITLE": "Delete messages"
+      },
+      "DISABLE_QUEUE": {
+        "MESSAGE": "Should the queues {{ queues }} really be deactivated?",
+        "TITLE": "Disable queues"
+      },
+      "ENABLE_QUEUE": {
+        "MESSAGE": "Should the queues {{ queues }} really be activated?",
+        "TITLE": "Enable queues"
+      },
+      "HELP_QUEUE_OPERATIONS": {
+        "TITLE": "Assistance with the various operations that can be carried out on a queue"
+      },
+      "MESSAGE_BODY": {
+        "TITLE": "Meldungs-Inhalt der Meldung {{ message }}"
+      },
+      "MESSAGE_DETAILS": {
+        "HEADERS": {
+          "DURABLE": "durable",
+          "EXPIRATION": "expiration",
+          "LARGE_MESSAGE": "largeMessage",
+          "MESSAGE_ID": "messageID",
+          "PERSISTENT_SIZE": "persistentSize",
+          "PRIORITY": "priority",
+          "PROTOCOL": "protocol",
+          "REDELIVERED": "redelivered",
+          "TIMESTAMP": "timestamp",
+          "TIMESTAMP_FORMATTED": "timestamp (formatted)",
+          "TYPE": "type"
+        },
+        "PROPERTIES": {
+          "COMMPATTERN": "Header_commPattern",
+          "MANDANTID": "Header_mandantId",
+          "MESSAGEID": "Header_messageId",
+          "MESSAGETYPE": "Header_messageType",
+          "ORIGINAL_QUEUE": "_AMQ_ORIG_QUEUE",
+          "PRIORITY": "Header_priority",
+          "RECEIVER": "Header_receiver",
+          "SENDER": "Header_sender",
+          "SENDER_PLATTFORM": "Header_senderPlattform"
+        },
+        "SUBTITLE_HEADERS": "Headers",
+        "SUBTITLE_PROPERTIES": "Properties",
+        "TITLE": "Details of message {{ message }}"
+      },
+      "MOVE_MESSAGES": {
+        "ALL_MESSAGES_LABEL": "All messages will be moved",
+        "BLOCK_SIZE": "Block size",
+        "BLOCK_SIZE_ERROR": "Block size must be at least 1",
+        "BLOCK_SIZE_HINT": "Recommended: {{ recommended }}",
+        "BUTTON_CANCEL": "Cancel",
+        "BUTTON_MOVE": "Move",
+        "CURRENT_QUEUE": "Current queue",
+        "MESSAGEIDS": "MessageIDs",
+        "TARGET_QUEUE": "Target queue",
+        "TITLE": "Move messages"
+      },
+      "MOVE_MESSAGES_CONFIRM": {
+        "MESSAGE": "Do you really want to move messages with MessageIDs {{ messages }} to the queue {{ targetQueue }}?",
+        "TITLE": "Move messages"
+      },
+      "PAUSE_QUEUE": {
+        "MESSAGE": "Should the queues {{ queues }} really be paused?",
+        "TITLE": "Pause queues"
+      },
+      "RECOVER_MESSAGES_CONFIRM": {
+        "MESSAGE": "Do you really want to recover the messages with the MessageIDs {{ messages }}?",
+        "TITLE": "Recover messages"
+      },
+      "RESUME_QUEUE": {
+        "MESSAGE": "Should the queues {{ queues }} really be resumed?",
+        "TITLE": "Resume queues"
+      },
+      "EXPORT_MESSAGE_CONFIRM": {
+        "MESSAGE": "Do you really want to export the messages with the MessageIds {{ messages }}?",
+        "TITLE": "Export messages",
+        "NO_NEW_MESSAGES_EXPORT": "New produced messages will not be exported. Only the messages that were selected at the time of the export will be exported."
+      }
+    },
+    "INSTANCES_TABLE": {
+      "COLUMN_TITLE_INSTANCE": "Instance",
+      "COLUMN_TITLE_QUEUES": "Queues",
+      "COLUMN_TITLE_STATE": "State",
+      "STATE_CHIP_OFFLINE": "Offline",
+      "STATE_CHIP_ONLINE": "Online"
+    },
+    "MAIN_TITLE": "Instances",
+    "MESSAGES_TABLE": {
+      "BUTTON_DELETE": "Delete",
+      "BUTTON_DETAILS": "Details",
+      "BUTTON_DETAILS_TOOLTIP": "Show message details",
+      "BUTTON_MESSAGE_BODY": "Content",
+      "BUTTON_MESSAGE_BODY_TOOLTIP": "Show message content",
+      "BUTTON_MOVE": "Move",
+      "BUTTON_RECOVER": "Recover",
+      "COLUMN_TITLE_MESSAGEID": "messageId",
+      "COLUMN_TITLE_HEADERMESSAGEID": "Header_messageId",
+      "COLUMN_TITLE_MESSAGETYPE": "Header_messageType",
+      "COLUMN_TITLE_ORIGINAL_QUEUE": "_AMQ_ORIG_QUEUE",
+      "COLUMN_TITLE_RECEIVER": "Header_receiver",
+      "COLUMN_TITLE_SENDER": "Header_sender",
+      "COLUMN_TITLE_TIMESTAMP": "timestamp (formatted)",
+      "TITLE_REPLICA": "Replica"
+    },
+    "QUEUES_TABLE": {
+      "BUTTON_ADD_MESSAGE": "Add a message",
+      "BUTTON_ADD_MESSAGE_TOOLTIP": "Send a message to the queue",
+      "BUTTON_DISABLE": "Disable",
+      "BUTTON_DISABLE_EXPLANATION": "When a queue is disabled, it will not longer have messages routed to it. ",
+      "BUTTON_ENABLE": "Enable",
+      "BUTTON_ENABLE_EXPLANATION": "When a queue is enabled, it’ll begin having messages routed to it again.",
+      "BUTTON_HELP": "Explanation/help",
+      "BUTTON_PAUSE": "Pause",
+      "BUTTON_PAUSE_EXPLANATION": "When a queue is paused, it will receive messages but will not deliver them.",
+      "BUTTON_RESUME": "Resume",
+      "BUTTON_RESUME_EXPLANATION": "When a queue is resumed, it'll begin delivering the queued messages.",
+      "BUTTON_SHOW_MESSAGES": "Messages",
+      "BUTTON_SHOW_MESSAGES_TOOLTIP": "Show messages from a queue",
+      "COLUMN_TITLE_ENABLED": "Enabled",
+      "COLUMN_TITLE_ENABLED_NO": "No",
+      "COLUMN_TITLE_ENABLED_YES": "Yes",
+      "COLUMN_TITLE_NUMBER_OF_CONSUMERS": "Number of consumers",
+      "COLUMN_TITLE_NUMBER_OF_MESSAGES": "Number of messages in the queue",
+      "COLUMN_TITLE_PAUSED": "Paused",
+      "COLUMN_TITLE_PAUSED_NO": "No",
+      "COLUMN_TITLE_PAUSED_YES": "Yes",
+      "COLUMN_TITLE_QUEUE": "Queue",
+      "COLUMN_TITLE_REPLICA": "Replica"
+    },
+    "SEARCH_SINGLE_MESSAGE": {
+      "HEADER_MESSAGE_ID": "Header_messageId",
+      "START_SEARCH_BUTTON": "Search"
+    },
+    "SHOW_MESSAGES": {
+      "ALL_MESSAGES": "All Messages",
+      "SELECT_ALL_LINK": "Select all {{ count }} messages",
+      "SELECTED_COUNT": "Selected message: {{ selected }} of {{ total }}",
+      "UNDO_SELECT_ALL_LINK": "Undo"
+    },
+    "STATUS_BOXES": {
+      "STREAMING_ACTIONS": {
+        "PROGRESS": "Progress: {{ processed }} / {{ total }}"
+      },
+      "EXPORT_MESSAGES": {
+        "ERROR": "Messages could not be exported",
+        "SUCCESS": "Messages exported successfully",
+        "PROGRESS": "Exporting messages... {{processed}} / {{total}}"
+      },
+      "ADD_MESSAGE": {
+        "ERROR": "Message could not be sent.",
+        "SUCCESS": "Message sent successfully.",
+        "BULK_IMPORT_ERROR": "Import failed. Please check the uploaded file and try again.",
+        "BULK_IMPORT_SUCCESS": "Import successful. All messages have been sent successfully. Failed messages are available in the downloaded file."
+      },
+      "DELETE_MESSAGES": {
+        "ERROR": "None of the selected messages could be deleted.",
+        "SUCCESS": "All selected messages were successfully deleted.",
+        "WARNING": "Only some of the selected messages were successfully deleted."
+      },
+      "INSTANCE_OFFLINE": "The instance {{ instance }} is currently unavailable and therefore no details can be displayed.",
+      "MESSAGE_BODY": {
+        "INFO": "A maximum of the bytes of a message is displayed as defined in management-message-attribute-size-limit (default: 256 bytes).\n"
+      },
+      "MOVE_MESSAGES": {
+        "ERROR": "None of the selected messages could be moved.",
+        "SUCCESS": "All selected messages were successfully moved.",
+        "WARNING": "Only some of the selected messages were successfully moved."
+      },
+      "NO_INSTANCES_VISIBLE": "No instances are available. Either you do not have a corresponding IDM role(s) or there is another technical problem.",
+      "NO_MESSAGES_FOUND": "No messages found for the selected queue.",
+      "RECOVER_MESSAGES": {
+        "ERROR": "No message recovered. Messages without original queue must be moved. A recovery process does not work without the original queue.",
+        "SUCCESS": "All messages have been recovered successfully.",
+        "WARNING": "Only some of the messages have been recovered successfully. Messages without original queue must be moved. A recovery process does not work without the original queue."
+      },
+      "SEARCH_SINGLE_MESSAGE": {
+        "ERROR": "No message found with given Header_messageId.",
+        "SEARCH_INFO": "Search a single message by Header_messageId."
+      }
+    }
+  },
+  "MENU": {
+    "INSTANCES": "Instances"
+  },
+  "USER_MENU": {
+    "LOGOUT": "Logout"
+  }
+}

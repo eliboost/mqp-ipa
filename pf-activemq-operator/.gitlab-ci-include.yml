@@ -1,0 +1,9 @@
+variables:
+  KUBEBUILDER_ASSETS: ${CI_PROJECT_DIR}/envtest
+  GO_TEST_OPTS: '-tags=with_envtest'
+  GOWORK: "off"
+
+include:
+  - component: gitlab.pnet.ch/linux/components/envtest@0.7.0
+    inputs:
+      k8s_version: '1.34.0'

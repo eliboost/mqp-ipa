@@ -1,0 +1,16 @@
+all: true
+dir: gen/mock/{{ replaceAll .InterfaceDirRelative "internal" "" }}
+structname: '{{.InterfaceName}}'
+template: testify
+filename: "{{.SrcPackageName}}/{{.InterfaceName}}.go"
+force-file-write: true
+packages:
+  gitlab.pnet.ch/middleware/activemq/activemq-merge-operator/internal/instance/gitlab:
+    config:
+      pkgname: gen
+  gitlab.pnet.ch/middleware/activemq/activemq-merge-operator/internal/instance/ces:
+    config:
+      pkgname: gen
+  gitlab.pnet.ch/middleware/activemq/activemq-merge-operator/internal/instance/k8s:
+    config:
+      pkgname: gen

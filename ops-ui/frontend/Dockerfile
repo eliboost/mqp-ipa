@@ -1,0 +1,20 @@
+# build actual image
+FROM linux-docker-local.repo.pnet.ch/pf/rhel:10.2.202610161041
+
+RUN dnf install -y nginx \
+        && dnf clean all \
+      	&& rm -rf /var/cache/yum \
+        && mkdir -p /usr/share/nginx/default.d
+
+COPY configs/nginx.conf /etc/nginx/nginx.conf
+COPY configs/security-enable-aplat.conf /etc/nginx/security-enable-aplat.conf
+COPY dist /usr/share/nginx/html
+
+COPY entrypoint.sh /
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 4200
+STOPSIGNAL SIGTERM
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]

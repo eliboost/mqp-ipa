@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mqp-ops-ui-esproxy-svc
+  labels:
+    appl: mqp-ops-ui-appl
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-mqp-ops-ui-esproxy
+      protocol: TCP
+      port: 8289
+      targetPort: 8081
+    - name: https-mqp-ops-ui-esproxy
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+    - name: https2-mqp-ops-ui-esproxy
+      port: 8443
+      targetPort: 8443
+      protocol: TCP
+    - name: static-mqp-ops-ui-esproxy
+      port: 8291
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    appl: mqp-ops-ui-esproxy
+

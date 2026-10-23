@@ -1,0 +1,39 @@
+name: mqp-ops-ui
+services:
+  mqp-ops-ui-es-proxy:
+    build:
+      context: .
+      args:
+        ESP_CONFIGFILE: esproxy-config-local.xml
+    container_name: "es-proxy"
+    environment:
+      - "PF_PLATFORM=E1"
+      - "PF_TC_DEV_ESPROXY_HOST=es-proxy"
+      - "ESP_CONFIGFILE=/appl/config/esproxy-config.xml"
+      - "APLAT_ESPROXY_GUI_URL=http://localhost:8289"
+      - "ESPROXY_TARGET_SERVER_FRONTEND=host.docker.internal"
+      - "ESPROXY_TARGET_SERVER_BACKEND=host.docker.internal"
+      - "APLAT_ESPROXY_SSL_KEYSTORE"
+      - "APLAT_ESPROXY_PROTOCOL=http"
+      - "APLAT_ESPROXY_DEBUG=true"
+      - "APLAT_ESPROXY_DEBUG_SSL=true"
+      - "APLAT_ESPROXY_LOG_HEADERS=true"
+      - "SSL_NG=false"
+    ports:
+      - "8289:8081"
+      - "8290:8443"
+      - "8291:8080"
+  mqp-ops-ui-frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.local
+    container_name: "frontend"
+    ports:
+      - "4205:4200"
+  mqp-ops-ui-backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.local
+    container_name: "backend"
+    ports:
+      - "8085:8085"

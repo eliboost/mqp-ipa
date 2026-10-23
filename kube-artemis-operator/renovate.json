@@ -1,0 +1,43 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>middleware/buildenv/renovate-presets:go",
+    "local>middleware/buildenv/renovate-presets:k8s-deployment"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/kustomization.yaml/"
+      ],
+      "matchStrings": [
+        "https://repo.pnet.ch/artifactory/middleware-github-generic-remote/(?<depName>.*/.*?)/releases/download/(?<currentValue>.*?)/"
+      ],
+      "datasourceTemplate": "github-releases"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Disable Automerge",
+      "matchManagers": [
+        "kustomize",
+        "kubernetes"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "wf::Blocked"
+      ]
+    },
+    {
+      "description": "Split up artemis version updates to separate MRs",
+      "matchDepNames": [
+        "arkmq-org/activemq-artemis-operator"
+      ],
+      "additionalBranchPrefix": "{{parentDir}}-",
+      "automerge": false,
+      "addLabels": [
+        "wf::Blocked"
+      ]
+    }
+  ]
+}

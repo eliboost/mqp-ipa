@@ -1,0 +1,21 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: clusterinfo
+  namespace: default
+data:
+  application: LINUX_MGMT
+  capabilities.cgroupv2: "true"
+  capabilities.gpu: "false"
+  capabilities.trident_iscsi: "true"
+  capabilities.trident_nfs: "true"
+  capabilities.wireguard: "true"
+  id: e1-k8s-local-lab-a
+  network.firewall.master: '-'
+  network.firewall.masterEdge: PF-K8S-MasterEdge-PFNet-E
+  network.firewall.worker: PF-K8S-Worker-PFNet-E
+  network.firewall.workerEdge: PF-K8S-WorkerEdge-PFNet-E
+  network.ingress.name: e1-local-lab-a.pnet.ch
+  version.cni: 1.15.6
+  version.kubernetes: 1.29.6
+  version.runtime: 1.7.16

@@ -1,0 +1,81 @@
+frontend-test:
+  stage: test
+  image: oui-docker-local.repo.pnet.ch/pf/oui/gitlab/build-node-22-testing:1.4.0
+  variables:
+    CHROME_BIN: "/usr/bin/chrome"
+  script:
+    - npm install --prefix frontend
+    - npm test --prefix frontend -- --watch=false --browsers=ChromeHeadlessNoSandbox
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+frontend-lint:
+  stage: build
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/node22:5.8.1
+  script:
+    - npm install --prefix frontend
+    - cd frontend
+    - npx eslint .
+    - npx prettier --config .prettierrc --check "**/*.{js,ts,css,html}"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+frontend-build:
+  stage: build
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/node22:5.8.1
+  script:
+    - npm install --prefix frontend
+    - npm run build --prefix frontend
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+frontend-docker-build:
+  extends: .docker-login
+  stage: build
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/node22:5.8.1
+  tags:
+    - docker
+    - linux
+  script:
+    - npm install --prefix frontend
+    - npm run build --prefix frontend
+    - cd frontend
+    - docker build .
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+frontend-staging:
+  extends: .docker-login
+  stage: build
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/node22:5.8.1
+  script:
+    - export CAL_VERSION=$(date -u '+%Y%m%d%H%M%S')
+    - npm install --prefix frontend
+    - npm run build --prefix frontend
+    - cd frontend
+    - docker build --cache-from $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_FRONTEND:$CAL_VERSION --tag $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_FRONTEND:$CAL_VERSION .
+    - docker push $ARTIFACTORY_DOCKER_URL_STAGING/$DOCKER_IMAGE_FRONTEND:$CAL_VERSION
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+frontend-release:
+  extends: .docker-login
+  stage: build
+  image: sdss-docker-local.repo.pnet.ch/pf/sdss/gitlab/dev/node22:5.8.1
+  variables:
+    DOCKER_REGISTRY: $ARTIFACTORY_DOCKER_URL_RELEASES
+  script:
+    - export VERSION=${CI_COMMIT_TAG#v}
+    - npm version $VERSION --prefix frontend --no-git-tag-version
+    - npm install --prefix frontend
+    - npm run build --prefix frontend
+    - cd frontend
+    - docker build --cache-from $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_FRONTEND:$VERSION --tag $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_FRONTEND:$VERSION .
+    - docker push $ARTIFACTORY_DOCKER_URL_RELEASES/$DOCKER_IMAGE_FRONTEND:$VERSION
+  rules:
+    - if: '$CI_COMMIT_TAG'
