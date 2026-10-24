@@ -50,8 +50,8 @@ Alle Varianten unten nutzen nur Funktionen, die in der Open-Source-Version stabi
 
 ### Wichtig für die Verifikation
 
-- Kargo verwendet `AnalysisTemplate` und `AnalysisRun` von Argo Rollouts. Laut `values.yaml` des Kargo-Charts wertet der Kargo-Controller die AnalysisRuns **selbst** aus (`controller.rollouts.integrationEnabled: true`). Er braucht nur die **CRDs von Argo Rollouts**, keinen eigenen Rollouts-Controller. Fehlen die CRDs, schaltet Kargo die Integration still ab und jede Verifikation schlägt fehl. Damit ist der offene Punkt im README fast beantwortet: Es muss nur geprüft werden, ob die CRDs im Kargo-Cluster installiert sind.
-- Die Jobs einer AnalysisRun laufen standardmässig im Cluster der Kargo-Control-Plane, nicht in Lab, E1 oder T1. Für Status-Checks braucht der Job also einen Zugriff auf den Ziel-Cluster (siehe [Entscheid 3.3](#33-ausführung-der-verifikationen)).
+- Kargo verwendet `AnalysisTemplate` und `AnalysisRun` von Argo Rollouts. Kargo **erzeugt** die AnalysisRun nur und liest danach ihre Phase. **Ausgewertet wird sie vom Argo-Rollouts-Controller**, der im Cluster der Kargo-Control-Plane laufen muss (Kargo-Quellcode v1.12.4, `pkg/rollouts/analysis_run_builder.go`; der Quickstart installiert Rollouts als eigenen Schritt). Fehlen die CRDs, schaltet Kargo die Integration ohne Meldung ab. Für den offenen Punkt im README heisst das: Es müssen CRDs **und** Controller vorhanden sein. *(Korrigiert am 24.10.2026: Vorher stand hier, die CRDs würden reichen.)*
+- Die Jobs einer AnalysisRun laufen deshalb im Cluster der Kargo-Control-Plane, nicht in Lab, E1 oder T1. Für Status-Checks braucht der Job also einen Zugriff auf den Ziel-Cluster (siehe [Entscheid 3.3](#33-ausführung-der-verifikationen)). Details zu den Testarten: [TESTARTEN.md](TESTARTEN.md).
 - Solange eine Verifikation läuft, warten andere Promotionen auf dieselbe Stage. Das ist für die Demo relevant (F&P04).
 
 ---
@@ -138,7 +138,7 @@ Die Tests werden als Bündel verglichen ([Notizen §10](NOTIZEN.md#10-variantene
 
 Variante A fällt am KO-Kriterium „README-Ergebnis 1 erfüllt“ heraus. B ist die Rückfallvariante, falls die Canary-Instanz in E1 vom Team nicht erlaubt wird.
 
-**Welche Tests blockieren?** In Kargo blockiert jede fehlgeschlagene Verifikation die Freight für die nächste Stage. Soll ein Test nur informieren, kann die Metrik im AnalysisTemplate auf `dryRun` gesetzt werden. Das ist eine Funktion von Argo Rollouts. Ob Kargo sie auswertet, steht nicht in der Kargo-Doku → in Lab prüfen. Mein Vorschlag: Test 3 in Lab nur informativ (Lab-Broker haben wenig Last und das Messfenster ist unzuverlässig), ab E1 blockierend.
+**Welche Tests blockieren?** In Kargo blockiert jede fehlgeschlagene Verifikation die Freight für die nächste Stage. Soll ein Test nur informieren, kann die Metrik im AnalysisTemplate auf `dryRun` gesetzt werden. Das ist eine Funktion von Argo Rollouts. Kargo übernimmt `dryRun` aus dem Template in die AnalysisRun (Quellcode v1.12.4), und der Rollouts-Controller wertet es aus. Mein Vorschlag: Test 3 in Lab nur informativ (Lab-Broker haben wenig Last und das Messfenster ist unzuverlässig), ab E1 blockierend.
 
 **Upgrade-Pfad (6)** bleibt Ausblick für D03. Er bräuchte eine Stage mit dem P1-Stand (2.53 / v2.1.7 / 0.17.1), und die gibt es in keinem Cluster.
 
@@ -228,11 +228,10 @@ Das KO-Kriterium „nur stabile Open-Source-Funktionen“ lohnt sich explizit, w
 
 Diese Punkte sind in der Doku nicht eindeutig beschrieben und sollten vor der Probe-IPA kurz in Lab getestet werden (Vorbereitung, nicht bewertet):
 
-- [ ] Sind die Argo-Rollouts-CRDs im Kargo-Cluster installiert? (Ohne sie scheitert jede Verifikation.)
+- [ ] Laufen die Argo-Rollouts-CRDs **und** der Rollouts-Controller im Kargo-Cluster? (Ohne sie scheitert jede Verifikation.)
 - [ ] Funktioniert `semverParse` in `freightCreationCriteria`, und lässt sich Major.Minor aus dem Init-Image-Tag (Version + Zeitstempel) ziehen?
 - [ ] Unterstützt `git-open-pr` / `git-wait-for-pr` unser GitLab (`gitlab.pnet.ch`) inklusive Token-Rechten?
 - [ ] ArkMQ abonnieren: Git-Subscription auf die Tags von `arkmq-org/activemq-artemis-operator` (braucht Zugriff auf GitHub oder einen Mirror in GitLab) oder Image-Subscription auf das Operator-Image über unsere Registry
-- [ ] Wertet Kargo `dryRun` in AnalysisTemplates aus?
 - [ ] Ist Prometheus mit den `monitor_messages_*`-Metriken vom Kargo-Cluster aus erreichbar?
 - [ ] Wie lange dauert eine Verifikation real (Rollout aller Broker + Messfenster)? Wichtig für die Demo-Planung.
 
