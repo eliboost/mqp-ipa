@@ -10,25 +10,30 @@ Fachrichtung: **Plattformentwicklung**
 |---|---|---|
 | Thema | **Teststrategie**: Welche Verifikationen sichern eine neue Version ab? | **Promotion-Strategie**: Wie kommt eine Version sicher durch alle Stages? |
 | Abschluss | Ende Januar | voraussichtlich April (Termin offen) |
-| Umgebungen | Lab → E1 | Lab → E1 → T1 (nucleus und pcilight) |
+| Kargo | Test-Instanz (Control-Plane Lab-D) | Prod-Instanz (Control-Plane management-a) |
+| Umgebungen | Lab-D → Lab-C (beide Testcluster, nur MQP) | (Lab →) E1 → T1 (nucleus und pcilight) |
 | Prod | ausgeschlossen | ausgeschlossen, nur als Konzept |
 | Variantenentscheid | Welche Testarten laufen als Verifikation, und welche blockieren? | Wie wird die Versionsabhängigkeit im Freight-Modell abgebildet? Welche Promotion-Strategie (Topologie, Freigaben)? |
 | Promotion | nur so viel wie nötig, damit die Verifikation läuft (Vorbereitung) | der eigentliche Inhalt |
 
 ```
-Probe-IPA:  lab-d ──► e1-pfnet-a
+Probe-IPA:  Kargo Lab-D (Test-Instanz)
+            lab-d ──► lab-c
             (einfache Promotion als Voraussetzung,
              bewertet wird die Verifikation in beiden Stages)
 
-IPA:        lab-d ──► e1-pfnet-a ──┬──► t1-nucleus-a
+IPA:        Kargo management-a (Prod-Instanz)
+            (lab ──►) e1-pfnet-a ──┬──► t1-nucleus-a
                                    └──► t1-pcilight-a
-            (Freight-Modell, Gates, Rechte, Rollback,
-             Verifikation aus der Probe-IPA ist Ausgangslage)
+            (Freight-Modell, Gates, Rechte, Rollback;
+             Verifikation aus der Probe-IPA kommt aus Git)
 
             p1-*: nur Konzept, Kargo hat keine Stage und keine Rechte
 ```
 
-**Warum diese Reihenfolge:** Für MQP ist der Schutz vor falschen Kombinationen auf E1 wichtiger als ein schnellerer Rollout. Nach der Probe-IPA ist E1 geschützt. Die Promotion über alle Stages ist das grössere Thema mit mehr Entscheiden und Beteiligten und passt darum in die IPA. Sie baut auf den Tests der Probe-IPA auf.
+**Warum diese Reihenfolge:** Für MQP ist der Schutz vor falschen Kombinationen wichtiger als ein schnellerer Rollout. Die Probe-IPA entwickelt und beweist diesen Schutz auf zwei eigenen Testclustern. Die Promotion über alle Stages ist das grössere Thema mit mehr Entscheiden und Beteiligten und passt darum in die IPA. Sie wendet die Tests der Probe-IPA auf E1 und T1 an.
+
+**Warum Lab-D → Lab-C für die Probe-IPA:** Beide Cluster gehören MQP und sind zum Kaputtmachen da. Ihre Kargo-Controller melden sich bei derselben Test-Control-Plane auf Lab-D, und beide hängen an `argocd-lab`. So lässt sich die Sperre zwischen zwei Stages beliebig oft und ohne Risiko für andere Teams nachweisen. E1 meldet sich bei management-a und ist von der Test-Instanz aus nicht erreichbar.
 
 Details: [VARIANTENENTSCHEIDE.md](VARIANTENENTSCHEIDE.md), [TESTARTEN.md](TESTARTEN.md), [VERSIONEN.md](VERSIONEN.md), [NOTIZEN.md](NOTIZEN.md).
 
@@ -49,36 +54,38 @@ Welche Reihenfolge und Kombination beim Ausrollen funktioniert, weiss man heute 
 - Der envtest des PF-Operators testet gegen `releases/latest` von ArkMQ, nicht gegen die deployte Version.
 - Der einzige Test nach dem Deployment ist der `artemis-monitor` (Dauer-Canary in `appl-mqp-e2e-<env>`). Er blockiert keine Promotion.
 - Versionsstand (Oktober 2026): Lab/E1/T1 Artemis 2.57.0 / ArkMQ v2.2.2 / PF 0.17.5, P1 Artemis 2.53.0 / ArkMQ v2.1.7 / PF 0.17.1.
-- Kargo betreiben wir selbst (Control-Planes auf management-a und Lab-D). Die Plattform ist Ausgangslage, nicht Leistung der Arbeiten.
+- Kargo betreiben wir selbst, zweimal: eine **Test-Instanz** (Control-Plane auf Lab-D, Controller auf Lab-D und Lab-C) zum Testen von Kargo selbst, und eine **Prod-Instanz** (Control-Plane auf management-a), bei der sich die Controller aller anderen Cluster melden. Die Plattform ist Ausgangslage, nicht Leistung der Arbeiten.
 - Die Build-Kette bis `repo.pnet.ch` (unsere Pipelines, Artifactory-Remotes vor quay.io und GitHub) ist Ausgangslage. Kargo beginnt bei Artifactory.
 
 Umgebungen und ArgoCD-Instanzen:
 
-| Cluster | ArgoCD | Rolle |
-|---|---|---|
-| `e1-k8s-pfnet-lab-d` | `argocd-lab` (eigene Instanz) | Lab |
-| `e1-k8s-pfnet-a` | `argocd-itd` | E1 |
-| `t1-k8s-nucleus-a`, `t1-k8s-pcilight-a` | `argocd-itd` | T1 |
-| `p1-k8s-nucleus-a`, `p1-k8s-pcilight-a` | `argocd` | Prod (tabu) |
+| Cluster | ArgoCD | Kargo-Controller meldet sich bei | Rolle |
+|---|---|---|---|
+| `e1-k8s-pfnet-lab-d` | `argocd-lab` | Lab-D (Test-Instanz) | Lab, MQP läuft heute schon |
+| Lab-C | `argocd-lab` | Lab-D (Test-Instanz) | Lab, MQP wird für die Probe-IPA aufgebaut |
+| `e1-k8s-pfnet-a` | `argocd-itd` | management-a | E1 |
+| `t1-k8s-nucleus-a`, `t1-k8s-pcilight-a` | `argocd-itd` | management-a | T1 |
+| `p1-k8s-nucleus-a`, `p1-k8s-pcilight-a` | `argocd` | management-a | Prod (tabu) |
 
 ---
 
-## Probe-IPA: Teststrategie für die Verifikation von Lab nach E1
+## Probe-IPA: Teststrategie für die Verifikation von Lab-D nach Lab-C
 
 ### Ziel
 
-Eine neue Kombination aus ArkMQ-Operator, PF-Operator, Broker- und Init-Image wird nach jeder Promotion in **Lab und E1** automatisch geprüft. Sie erreicht E1 nur, wenn die Verifikation in Lab erfolgreich war. Ungültige Kombinationen werden erkannt, bevor sie andere Teams treffen.
+Eine neue Kombination aus ArkMQ-Operator, PF-Operator, Broker- und Init-Image wird nach jeder Promotion in **Lab-D und Lab-C** automatisch geprüft. Sie erreicht Lab-C nur, wenn die Verifikation in Lab-D erfolgreich war. Die Teststrategie ist so gebaut, dass sie in der IPA unverändert für E1 und T1 übernommen werden kann: Lab-D → Lab-C ist das Modell für Lab → E1.
 
 ### Messbare Ergebnisse
 
-1. Ein Testkonzept: Testarten begründet, Testfälle mit erwarteten Ergebnissen, Abstufung zwischen Lab und E1.
-2. AnalysisTemplates für die gewählte Variante, als Verifikation an den Stages `lab` und `e1`. Mindestens:
+1. Ein Testkonzept: Testarten begründet, Testfälle mit erwarteten Ergebnissen, Abstufung zwischen erster und zweiter Stage.
+2. AnalysisTemplates für die gewählte Variante, als Verifikation an den Stages `lab-d` und `lab-c`. Mindestens:
    - **Version angekommen, Rollout fertig** (V): die Operatoren und alle Broker laufen mit den Versionen aus der Freight.
    - **Status aller Instanzen** (S): `PFActiveMQ` und `ActiveMQArtemis` sind Ready, ohne neue Fehler nach dem Upgrade.
    - **Nachrichtenfluss** (F): `artemis-monitor`-Metriken, Nachrichten fliessen, keine Verspätungen und Fehler.
 3. Eine **Kompatibilitätsprüfung** (K) vor dem Commit: Die Kombination ist laut Matrix erlaubt, sonst bricht die Promotion ab.
-4. Nachweis der Sperre: Eine provozierte, ungültige Kombination bleibt in Lab hängen und erreicht E1 nicht.
+4. Nachweis der Sperre: Eine provozierte, ungültige Kombination bleibt in `lab-d` hängen und erreicht `lab-c` nicht.
 5. Testprotokoll und Betriebsdoku (Verifikation lesen, neu starten, Fehlerfälle).
+6. Alle Kargo-Ressourcen (Warehouse, Stages, `PromotionTask`, AnalysisTemplates) liegen deklarativ in Git und lassen sich in der IPA auf management-a wiederverwenden.
 
 ### Variantenentscheid: Testarten
 
@@ -88,12 +95,15 @@ Eine neue Kombination aus ArkMQ-Operator, PF-Operator, Broker- und Init-Image wi
 | B, Funktion | K + V + S + F |
 | C, umfassend | K + V + S + F + O (Operator stabil) + C (Canary-Instanz anlegen und löschen) |
 
-Mögliche Kriterien: Aussagekraft, Laufzeit, Stabilität, Aufwand, Auswirkung auf andere Teams. Details und Empfehlung: [VARIANTENENTSCHEIDE.md §2](VARIANTENENTSCHEIDE.md#2-probe-ipa-teststrategie-lab--e1), [TESTARTEN.md](TESTARTEN.md).
+Mögliche Kriterien: Aussagekraft, Laufzeit, Stabilität, Aufwand, Auswirkung auf andere Teams. Details und Empfehlung: [VARIANTENENTSCHEIDE.md §2](VARIANTENENTSCHEIDE.md#2-probe-ipa-teststrategie-lab-d--lab-c), [TESTARTEN.md](TESTARTEN.md).
 
 ### Abgrenzung
 
-- Kein T1, kein Prod.
-- **Freight-Modell und Promotion sind nicht Teil der Bewertung.** Warehouse, Stages `lab`/`e1` und eine einfache Promotion (ein Warehouse, beide Stages manuell, direkter Push) laufen vor dem Start als Vorbereitung. Sie sind bewusst vorläufig und werden in der IPA evaluiert.
+- Nur die Testcluster Lab-D und Lab-C und nur die Kargo-Test-Instanz. Kein E1, kein T1, kein Prod.
+- Die Teststrategie wird auf Testclustern **entwickelt und nachgewiesen**. Angewendet auf E1/T1 wird sie in der IPA.
+- Auf Lab-C laufen keine Instanzen anderer Teams. Das wird mit eigenen Test-Instanzen nachgebildet (mindestens eine mit 1 und eine mit 2 Replicas).
+- **Freight-Modell und Promotion sind nicht Teil der Bewertung.** Warehouse, Stages `lab-d`/`lab-c` und eine einfache Promotion (ein Warehouse, beide Stages manuell, direkter Push) laufen vor dem Start als Vorbereitung. Sie sind bewusst vorläufig und werden in der IPA evaluiert.
+- Der Aufbau von MQP auf Lab-C (Operatoren, Test-Instanzen, `artemis-monitor`, Prometheus) ist Vorbereitung.
 - Kargo-Plattform, Zugänge und Build-Kette bis Artifactory sind Ausgangslage.
 - Upgrade-Pfad n-1 → n nur als Ausblick.
 
@@ -117,17 +127,19 @@ Mögliche Kriterien: Aussagekraft, Laufzeit, Stabilität, Aufwand, Auswirkung au
 | A17 | **D01** Analyse | unverändert | Ist-Analyse: heutige Tests und Lücken |
 | A18 | **D03** Sicherstellung des Betriebs und der Weiterentwicklung | unverändert | Betriebsdoku der Verifikation, nächste Schritte für die IPA |
 | A19 | **E10** Konzept zur Überwachung | angepasst auf Broker statt Netzwerk | Überwachte Elemente, Schwellwerte und Aktionen entsprechen den Erfolgsbedingungen der AnalysisTemplates |
-| A20 | **C08** Planung und Implementierung eines Rollenkonzepts | angepasst | Rechte der Verifikations-Jobs auf Lab/E1, Least Privilege, kein Zugriff auf P1 |
+| A20 | **C08** Planung und Implementierung eines Rollenkonzepts | angepasst | Rechte der Verifikations-Jobs auf Lab-D/Lab-C, Least Privilege, kein Zugriff auf andere Cluster |
 | A21 | Abbildung von Versionsabhängigkeiten in Prüfungen | eigenes | Abhängigkeiten aus dem Code belegt, als Kompatibilitätsprüfung und Verifikation automatisiert |
 | A22 | Testkonzept für Verifikationen | eigenes | Testarten begründet, Testfälle mit erwarteten Ergebnissen, als AnalysisTemplates automatisiert, Fehlerfälle provoziert |
 
 ### Risiken
 
-- Die Verifikations-Jobs laufen im Kargo-Cluster und brauchen Leserechte auf Lab und E1.
-- Argo-Rollouts-Controller und CRDs müssen im Kargo-Cluster laufen.
-- E1 wird von Entwicklerteams genutzt. Upgrades auf E1 und die Canary-Instanz brauchen eine Absprache.
+- Die Kargo-Test-Instanz ist zum Testen von Kargo selbst da. Ein Kargo-Upgrade oder ein Experiment während der Probe-IPA kann die Arbeit stören. **Für die Dauer der Probe-IPA Kargo-Version und Konfiguration auf Lab-D einfrieren** (mit dem Team absprechen).
+- Lab-D und Lab-C sind zum Kaputtmachen da. Auch andere Tests im Team können MQP dort stören. Zeitfenster absprechen.
+- Die Verifikations-Jobs laufen auf Lab-D (Argo-Rollouts-Controller und CRDs müssen dort laufen) und brauchen Leserechte auf Lab-C.
+- Prometheus sammelt heute nur Lab-D. Für Lab-C muss dasselbe aufgebaut werden.
+- Lab-C bildet E1 nur teilweise ab (keine fremden Instanzen, wenig Last). Die Aussagekraft für E1 ist in der Doku zu begründen.
 - Verifikations-Laufzeiten (Rollout aller Broker plus Messzeit) bremsen die Live-Demo (F&P04). Eine verkürzte Demo-Variante vorbereiten.
-- Lab-d ist heute eine Entwickler-Spielwiese (Staging-Image, CRD ungepinnt von `main`).
+- Lab-D läuft heute mit Staging-Image und CRD von `main`. Für die Stage `lab-d` festlegen, welcher Stand gilt.
 - Die vorläufige Promotion darf den Entscheiden der IPA nicht vorgreifen.
 
 ---
@@ -136,12 +148,12 @@ Mögliche Kriterien: Aussagekraft, Laufzeit, Stabilität, Aufwand, Auswirkung au
 
 ### Ziel
 
-Die MQP-Komponenten werden mit Kargo von **Lab über E1 auf beide T1-Cluster** promotet und nicht mehr über manuelle MRs pro Cluster ausgerollt. Die Versionsabhängigkeiten sind im Freight-Modell abgebildet, die Gates zwischen den Stages bauen auf der Verifikation der Probe-IPA auf. Prod wird nicht berührt, das Vorgehen ist aber so beschrieben, dass es später für P1 übernommen werden kann.
+Die MQP-Komponenten werden mit der Kargo-Prod-Instanz (management-a) **über E1 auf beide T1-Cluster** promotet und nicht mehr über manuelle MRs pro Cluster ausgerollt. Die Versionsabhängigkeiten sind im Freight-Modell abgebildet, die Gates zwischen den Stages bauen auf der Verifikation der Probe-IPA auf. Prod wird nicht berührt, das Vorgehen ist aber so beschrieben, dass es später für P1 übernommen werden kann.
 
 ### Messbare Ergebnisse
 
 1. Freight-Modell evaluiert und umgesetzt: Das Warehouse erzeugt nur Freight aus zusammenpassenden Versionen.
-2. Stages `lab`, `e1`, `t1-nucleus`, `t1-pcilight` mit einer gemeinsamen Promotion (gleiche Schritte, Werte pro Stage). Die Promotion schreibt beide kube-Repos und synchronisiert ArkMQ vor dem PF-Operator.
+2. Kargo-Projekt auf management-a, aufgebaut aus den Manifesten der Probe-IPA (Git). Stages `e1`, `t1-nucleus`, `t1-pcilight` (und `lab`, falls management-a `argocd-lab` erreicht) mit einer gemeinsamen Promotion (gleiche Schritte, Werte pro Stage). Die Promotion schreibt beide kube-Repos und synchronisiert ArkMQ vor dem PF-Operator.
 3. Gates pro Übergang umgesetzt: automatische oder manuelle Freigabe, Wartezeit (`requiredSoakTime`), Rechte pro Stage.
 4. Parallele Promotion auf `t1-k8s-nucleus-a` und `t1-k8s-pcilight-a`.
 5. Rollback (ältere Freight erneut promoten) beschrieben und getestet, inklusive Grenzen (CRD- und Journal-Downgrade).
@@ -159,7 +171,7 @@ Details und Empfehlung: [VARIANTENENTSCHEIDE.md §3](VARIANTENENTSCHEIDE.md#3-ip
 
 - Kein Prod. P1 nur als Konzept, Kargo bekommt keine Rechte auf P1.
 - E1 und T1 nur nach Absprache mit dem Team. Operator-Updates betreffen alle Broker im Cluster (`WATCH_NAMESPACE: "*"`).
-- Die Verifikation der Probe-IPA ist Ausgangslage. Sie wird für T1 übernommen, nicht neu entwickelt.
+- Die Verifikation der Probe-IPA ist Ausgangslage. Sie wird aus Git für E1 und T1 übernommen, nicht neu entwickelt. Der Umzug von der Test- auf die Prod-Instanz gehört zur Inbetriebnahme (D05).
 - Was beim Schnitt Ende März bereits vorhanden ist (siehe Planung), ist Ausgangslage und nicht Teil der IPA.
 - Build-Kette bis Artifactory und die Selfservice-Validierung in `activemq/instances` sind nicht Teil der Arbeit.
 
@@ -172,7 +184,7 @@ Details und Empfehlung: [VARIANTENENTSCHEIDE.md §3](VARIANTENENTSCHEIDE.md#3-ip
 | Slot | Kriterium | Bezug |
 |---|---|---|
 | A13 | **D02** Standardisierung, Optimierung und Automatisierung | Manuelle MRs pro Cluster werden durch eine Promotion über die Stages ersetzt |
-| A14 | **D05** Inbetriebnahme und Übergabe einer ICT-Lösung | Inbetriebnahme auf E1/T1 mit den Teams koordiniert, Übergabe an den Betrieb |
+| A14 | **D05** Inbetriebnahme und Übergabe einer ICT-Lösung | Umzug von der Kargo-Test- auf die Prod-Instanz, Inbetriebnahme auf E1/T1 mit den Teams koordiniert, Übergabe an den Betrieb |
 
 **Wahlkriterien:**
 
@@ -190,7 +202,9 @@ Details und Empfehlung: [VARIANTENENTSCHEIDE.md §3](VARIANTENENTSCHEIDE.md#3-ip
 ### Risiken
 
 - E1 und T1 werden von anderen Teams genutzt. Zeitfenster und Freigaben müssen vorher abgesprochen sein.
-- Fehlende Berechtigungen auf die kube-Repos oder ArgoCD-Apps; `argocd-lab` und `argocd-itd` müssen an Kargo angebunden sein.
+- Fehlende Berechtigungen auf die kube-Repos oder ArgoCD-Apps auf management-a.
+- Ob management-a `argocd-lab` erreicht, ist offen. Sonst beginnt die Pipeline der IPA bei E1.
+- Die Kargo-Prod-Instanz bedient auch andere Apps. Änderungen dort brauchen mehr Sorgfalt als auf der Test-Instanz.
 - Darf die IPA nicht auf der Probe-IPA aufbauen, muss die Verifikation neu hergeleitet werden.
 - Rollback ist bei Artemis heikel (CRD-Version, Journal).
 - Lange Wartezeiten (`requiredSoakTime`) und Verifikationen bremsen die Live-Demo. Für die Demo kurze Werte setzen und begründen.
@@ -201,10 +215,10 @@ Details und Empfehlung: [VARIANTENENTSCHEIDE.md §3](VARIANTENENTSCHEIDE.md#3-ip
 
 | Zeitraum | Was | Gilt als |
 |---|---|---|
-| bis Mitte Dezember | Kargo-Zugang, Rechte auf die Repos, Anbindung `argocd-lab` und `argocd-itd`, Argo Rollouts prüfen, Absprache Lab-d. **Vorläufiges Warehouse + Stages `lab`/`e1` + einfache Promotion** (Image-Argumente in eigene Patch-Datei) | Vorbereitung |
+| bis Mitte Dezember | Rechte auf die Repos, Argo Rollouts auf Lab-D prüfen. **MQP auf Lab-C aufbauen** (Overlays in beiden kube-Repos, Test-Instanzen, `artemis-monitor`, Prometheus). **Vorläufiges Warehouse + Stages `lab-d`/`lab-c` + einfache Promotion** auf der Kargo-Test-Instanz (Image-Argumente in eigene Patch-Datei). Einfrieren der Test-Instanz absprechen | Vorbereitung |
 | Dezember / Januar | Aufgabenstellung Probe-IPA einreichen, Probe-IPA durchführen | Probe-IPA |
 | Ende Januar | Abschluss Probe-IPA, Feedback der Experten auswerten | Probe-IPA |
-| Februar / März | Verifikation stabilisieren, Absprache mit den Teams zu E1/T1, Zugriffe auf T1, Aufgabenstellung IPA einreichen. **T1-Stages und Freight-Modell nicht vorab bauen** (IPA-Inhalt) | Vorarbeit IPA |
+| Februar / März | Verifikation stabilisieren, Absprache mit den Teams zu E1/T1, Zugriffe auf management-a, E1 und T1, Aufgabenstellung IPA einreichen. **Projekt auf management-a, E1/T1-Stages und Freight-Modell nicht vorab bauen** (IPA-Inhalt) | Vorarbeit IPA |
 | **Ende März** | **Schnitt:** Stand dokumentieren, was in Kargo läuft und was noch über Renovate und MRs läuft | Ausgangslage IPA |
 | voraussichtlich April | IPA durchführen | IPA |
 
@@ -212,11 +226,13 @@ Details und Empfehlung: [VARIANTENENTSCHEIDE.md §3](VARIANTENENTSCHEIDE.md#3-ip
 
 - [x] Kargo bei PF: Wir betreiben es selbst, ich baue es seit rund einem Jahr auf. Die bestehende Plattform ist Ausgangslage, nicht IPA-Leistung.
 - [ ] **Mit der verantwortlichen Fachkraft klären, ob die IPA auf der Probe-IPA aufbauen darf** (vor dem Einreichen der Probe-IPA, entscheidend für die Aufteilung)
-- [ ] Mit der Fachkraft klären, dass die vorläufige Promotion Lab/E1 als Vorbereitung gilt
-- [ ] Laufen Argo-Rollouts-CRDs **und** -Controller im Kargo-Cluster? Auf welcher Control-Plane läuft das MQP-Projekt?
-- [ ] Wie erreichen die Verifikations-Jobs Lab und E1 (Leserechte pro Cluster)?
-- [ ] Freigabe des Teams für Promotionen und die Canary-Instanz auf E1 (Zeitfenster, Kommunikation)
-- [ ] Wem gehört Lab-d künftig (Kargo-Stage oder Entwickler-Spielwiese)?
+- [ ] Mit der Fachkraft klären, dass die vorläufige Promotion und der Aufbau von MQP auf Lab-C als Vorbereitung gelten
+- [x] Auf welcher Control-Plane läuft die Probe-IPA? → Test-Instanz auf Lab-D, Stages Lab-D und Lab-C (beide `argocd-lab`, beide gehören MQP)
+- [ ] Laufen Argo-Rollouts-CRDs **und** -Controller auf Lab-D?
+- [ ] Wie erreichen die Verifikations-Jobs Lab-C (Leserechte)?
+- [ ] Kargo-Test-Instanz während der Probe-IPA einfrieren (Absprache im Team)
+- [ ] Welcher Stand gilt für die Stage `lab-d` (heute Staging-Image, CRD von `main`)?
+- [ ] Für die IPA: Erreicht management-a `argocd-lab`? Freigabe der Teams für E1 und T1
 - [ ] Projektmethode festlegen (linear, z. B. IPERKA, oder agil) und für beide Arbeiten gleich halten
 - [ ] Angepasste und eigene Kriterien im Katalogformat (Gütestufen) ausformulieren und von den Experten validieren lassen
 

@@ -2,12 +2,12 @@
 
 Vorschläge für die Variantenentscheide der Probe-IPA und der IPA (Stand 24.10.2026). Grundlage sind die [Notizen](NOTIZEN.md), das [README](README.md) und die offizielle Kargo-Doku (docs.kargo.io, aktuelles Release **v1.12.4** vom 12.10.2026).
 
-**Aufteilung (seit 24.10.2026):** Die Probe-IPA behandelt die **Teststrategie** für Lab → E1. Die IPA behandelt die **Promotion-Strategie** für Lab → E1 → T1 und baut auf den Tests der Probe-IPA auf. Begründung im [README](README.md#übersicht).
+**Aufteilung (seit 24.10.2026):** Die Probe-IPA behandelt die **Teststrategie** auf der Kargo-Test-Instanz (Lab-D → Lab-C). Die IPA behandelt die **Promotion-Strategie** auf der Kargo-Prod-Instanz ((Lab →) E1 → T1) und übernimmt die Tests der Probe-IPA aus Git. Begründung im [README](README.md#übersicht).
 
 ## Inhalt
 
 1. [Was Kargo on-prem (Open Source) bietet](#1-was-kargo-on-prem-open-source-bietet)
-2. [Probe-IPA: Teststrategie Lab → E1](#2-probe-ipa-teststrategie-lab--e1)
+2. [Probe-IPA: Teststrategie Lab-D → Lab-C](#2-probe-ipa-teststrategie-lab-d--lab-c)
 3. [IPA: Promotion-Strategie Lab → T1](#3-ipa-promotion-strategie-lab--t1)
 4. [Vorgehen bei der Bewertung (A16)](#4-vorgehen-bei-der-bewertung-a16)
 5. [In Lab zu prüfen](#5-in-lab-zu-prüfen)
@@ -60,9 +60,9 @@ Alle Varianten unten nutzen nur Funktionen, die in der Open-Source-Version stabi
 
 ---
 
-## 2. Probe-IPA: Teststrategie Lab → E1
+## 2. Probe-IPA: Teststrategie Lab-D → Lab-C
 
-Thema: Welche Verifikationen sichern eine neue Kombination in Lab und E1 ab? Es gibt **einen** bewerteten Variantenentscheid (Testarten). Die Ausführung der Verifikationen (§2.2) wird im Konzept begründet, aber nicht bewertet. Die Promotion (§2.3) ist Vorbereitung und bewusst vorläufig.
+Thema: Welche Verifikationen sichern eine neue Kombination ab, bevor sie die nächste Stage erreicht? Entwickelt und nachgewiesen auf den beiden MQP-Testclustern Lab-D und Lab-C mit der Kargo-Test-Instanz (Control-Plane Lab-D, beide Cluster über `argocd-lab`). Lab-D → Lab-C ist das Modell für Lab → E1 in der IPA. Es gibt **einen** bewerteten Variantenentscheid (Testarten). Die Ausführung der Verifikationen (§2.2) wird im Konzept begründet, aber nicht bewertet. Die Promotion (§2.3) ist Vorbereitung und bewusst vorläufig.
 
 ### 2.1 Testarten (bewerteter Variantenentscheid)
 
@@ -77,14 +77,14 @@ Die Testarten sind in [TESTARTEN.md](TESTARTEN.md) beschrieben. Kurz:
 | O | Operator stabil (keine Neustarts, kein Dauer-Reconcile) | Verifikation, Prometheus |
 | C | Canary-Instanz anlegen, testen, löschen | Verifikation, Job |
 
-Die Kompatibilitätsprüfung K gehört **vor** den Commit, nicht in die Verifikation. Eine Verifikation läuft erst nach dem Deployment, dann ist eine ungültige Kombination schon im Cluster. Weil K in den Promotion-Schritten steht, läuft sie auch dann, wenn jemand eine Freight mit `kargo approve` an Lab vorbei freigibt.
+Die Kompatibilitätsprüfung K gehört **vor** den Commit, nicht in die Verifikation. Eine Verifikation läuft erst nach dem Deployment, dann ist eine ungültige Kombination schon im Cluster. Weil K in den Promotion-Schritten steht, läuft sie auch dann, wenn jemand eine Freight mit `kargo approve` an der ersten Stage vorbei freigibt.
 
 | | A, minimal | B, Funktion | C, umfassend |
 |---|---|---|---|
 | Inhalt | V + S | K + V + S + F | K + V + S + F + O + C |
 | Fängt ab | Crash, CRD-/API-Fehler, veralteter Status | dazu: Broker verarbeitet nichts, ungültige Kombination vor dem Commit | dazu: Dauer-Reconcile, neue Instanzen werden nicht mehr korrekt angelegt |
 | Laufzeit pro Stage | Rollout aller Broker | + Messfenster (z. B. 10 min) | + Anlegen und Löschen der Instanz |
-| Auswirkung auf andere Teams | keine | keine (nur lesen) | legt auf E1 eine Instanz in `appl-mqp-test` an → Absprache nötig |
+| Auswirkung auf andere Teams | in der Probe-IPA keine (eigene Testcluster) | keine | keine. Auf E1 in der IPA legt C eine Instanz an → Absprache |
 | Aufwand | klein | mittel | gross |
 | README-Ergebnis (V, S, F + K) | **nicht erfüllt** | erfüllt | erfüllt |
 
@@ -92,17 +92,20 @@ Die Kompatibilitätsprüfung K gehört **vor** den Commit, nicht in die Verifika
 
 | Stage | K | V | S | F | O | C |
 |---|---|---|---|---|---|---|
-| lab | ✓ | ✓ | ✓ | `dryRun` | `dryRun` | ✓ |
-| e1 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| lab-d (erste Stage) | ✓ | ✓ | ✓ | `dryRun` | `dryRun` | ✓ |
+| lab-c (zweite Stage, Modell für E1) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 Begründung:
 
 - V ist die Grundlage für alles andere. Der Status des PF-Operators kann veraltet sein (kein `observedGeneration`), ohne V messen die anderen Tests eventuell noch den alten Stand.
 - C ist die einzige Prüfung für den Fall „Upgrade kaputt, bestehende Broker laufen aber weiter“.
-- F und O sind in Lab nur informativ: Lab-Broker haben wenig Last, und das Messfenster ist unzuverlässig. Ab E1 blockieren sie.
+- F und O sind in der ersten Stage nur informativ, in der zweiten blockieren sie. Das bildet die spätere Abstufung Lab (wenig Last, Messfenster unzuverlässig) → E1 nach.
 - Die Abstufung pro Stage macht die Bewertung stärker als „C gewinnt, weil es am meisten ist“.
+- Auf den eigenen Testclustern ist C ohne Absprache möglich. Damit ist C in der Probe-IPA auch beim Kriterium „Auswirkung auf andere Teams“ gleichwertig.
 
-Variante A fällt am KO-Kriterium „README-Ergebnisse erfüllt“ heraus. **B ist die Rückfallvariante**, falls die Canary-Instanz auf E1 vom Team nicht erlaubt wird.
+Variante A fällt am KO-Kriterium „README-Ergebnisse erfüllt“ heraus. **B ist die Rückfallvariante**, falls die Zeit für C nicht reicht oder in der IPA die Canary-Instanz auf E1 nicht erlaubt wird.
+
+**Was Lab-C nicht abbildet:** Auf Lab-C laufen keine Instanzen anderer Teams und wenig Last. Für S werden darum mehrere eigene Test-Instanzen angelegt (mindestens eine mit 1 und eine mit 2 Replicas). Die Grenze wird im Testkonzept beschrieben.
 
 **Welche Tests blockieren?** In Kargo blockiert jede nicht erfolgreiche Verifikation die Freight für die nächste Stage, auch `Inconclusive`. Soll ein Test nur informieren, wird die Metrik im AnalysisTemplate auf `dryRun` gesetzt. Kargo übernimmt `dryRun` aus dem Template (Quellcode v1.12.4), der Rollouts-Controller wertet es aus.
 
@@ -110,7 +113,7 @@ Variante A fällt am KO-Kriterium „README-Ergebnisse erfüllt“ heraus. **B i
 
 ### 2.2 Ausführung der Verifikationen (technischer Entscheid, nicht bewertet)
 
-Die Jobs laufen im Kargo-Cluster. Die Status-Checks brauchen aber Daten aus Lab und E1.
+Die Jobs laufen im Cluster der Kargo-Control-Plane, in der Probe-IPA also auf **Lab-D**. Für die Stage `lab-d` reicht ein ServiceAccount im selben Cluster. Für `lab-c` braucht der Job Zugriff auf den anderen Cluster.
 
 | Variante | Wie | Pro | Contra |
 |---|---|---|---|
@@ -118,7 +121,7 @@ Die Jobs laufen im Kargo-Cluster. Die Status-Checks brauchen aber Daten aus Lab 
 | b) Prometheus | Status über kube-state-metrics (Custom Resource State) abfragen | kein Cluster-Zugriff | kube-state-metrics muss die CRs exportieren, eher nicht vorhanden |
 | c) `web`-Provider | direkt gegen die K8s-API | kein Job-Pod | Token im Template, unübersichtlich |
 
-**Empfehlung: a für V, S und C, Prometheus für F und O.** Die Leserechte pro Cluster sind gleich ein Baustein für C08 (Least Privilege). Für C braucht der ServiceAccount zusätzlich Schreibrechte, aber nur im Namespace `appl-mqp-test`.
+**Empfehlung: a für V, S und C, Prometheus für F und O.** Die Leserechte pro Cluster sind gleich ein Baustein für C08 (Least Privilege). Für C braucht der ServiceAccount zusätzlich Schreibrechte, aber nur im Canary-Namespace. In der IPA (Control-Plane management-a) wird dasselbe Muster für E1 und T1 angewendet. Prometheus muss Lab-C einsammeln und von Lab-D aus abfragbar sein.
 
 ### 2.3 Promotion als Voraussetzung (Vorbereitung, nicht bewertet)
 
@@ -127,19 +130,22 @@ Damit die Verifikation läuft, braucht es Warehouse, Stages und eine Promotion. 
 | Punkt | Vorläufig in der Probe-IPA | Wird in der IPA entschieden |
 |---|---|---|
 | Freight | ein Warehouse mit vier Subscriptions, **ohne** `freightCreationCriteria` und ohne feste Vorgabe. Ungültige Kombinationen fängt K ab | Freight-Modell (§3.1) |
-| Stages | `lab` (Freight direkt vom Warehouse), `e1` (Freight nur aus `lab`, nach erfolgreicher Verifikation) | Topologie mit T1 (§3.2 a) |
+| Kargo-Instanz | Test-Instanz (Control-Plane Lab-D) | Prod-Instanz (management-a), Umzug aus Git (D05) |
+| Stages | `lab-d` (Freight direkt vom Warehouse), `lab-c` (Freight nur aus `lab-d`, nach erfolgreicher Verifikation) | Topologie mit E1 und T1 (§3.2 a) |
 | Freigabe | beide Stages **manuell** | automatisch oder manuell pro Übergang (§3.2 c) |
-| Git | `git-push` direkt | Git-Weg (§3.2 c) |
-| Reihenfolge | `argocd-update` ArkMQ-App → `argocd-wait` → PF-App | bestätigt (§3.2 b) |
-| P1 | keine Stage, keine Rechte | Konzept |
+| Git | `git-push` direkt in die Overlays von Lab-D und Lab-C | Git-Weg (§3.2 c) |
+| Reihenfolge | `argocd-update` ArkMQ-App → `argocd-wait` → PF-App (beide Cluster über `argocd-lab`) | bestätigt (§3.2 b) |
+| E1, T1, P1 | keine Stage, keine Rechte | E1/T1 Stages, P1 Konzept |
 
-Die Sperre „E1 nur nach grüner Verifikation in Lab“ kommt aus `sources.stages: [lab]`. Sie ist Teil der Teststrategie und wird in der Probe-IPA nachgewiesen (Fehlerfall provozieren).
+Die Sperre „`lab-c` nur nach grüner Verifikation in `lab-d`“ kommt aus `sources.stages: [lab-d]`. Sie ist Teil der Teststrategie und wird in der Probe-IPA nachgewiesen (Fehlerfall provozieren).
+
+Weil die Kargo-Test-Instanz auch zum Testen von Kargo selbst dient, werden Kargo-Version und Konfiguration auf Lab-D für die Dauer der Probe-IPA eingefroren.
 
 ---
 
 ## 3. IPA: Promotion-Strategie Lab → T1
 
-Thema: Wie kommt eine Version sicher von Lab bis auf beide T1-Cluster? Es gibt zwei bewertete Entscheide (Freight-Modell und Promotion-Strategie). Die Verifikation aus der Probe-IPA ist Ausgangslage. Zielbild: [VERSIONEN.md §8](VERSIONEN.md#8-promotion-mit-kargo).
+Thema: Wie kommt eine Version sicher bis auf beide T1-Cluster? Läuft auf der Kargo-Prod-Instanz (management-a), weil sich E1 und T1 dort melden. Ob die Pipeline bei Lab beginnt, hängt davon ab, ob management-a `argocd-lab` erreicht; sonst beginnt sie bei E1. Es gibt zwei bewertete Entscheide (Freight-Modell und Promotion-Strategie). Die Verifikation aus der Probe-IPA ist Ausgangslage und kommt aus Git. Zielbild: [VERSIONEN.md §8](VERSIONEN.md#8-promotion-mit-kargo).
 
 ### 3.1 Freight-Modell (bewerteter Variantenentscheid 1)
 
@@ -242,12 +248,14 @@ A16 verlangt, Kriterien und Gewichtung **vor** der Bewertung festzulegen. Vorsch
 
 | Kriterium | Probe-IPA (Testarten) | IPA (Freight-Modell) | IPA (Promotion) |
 |---|---|---|---|
-| Verhindert ungültige Kombinationen / fängt Fehler ab | 30 % | 30 % | 15 % |
-| Auswirkung auf andere Teams (E1/T1) | 20 % | 10 % | 25 % |
+| Verhindert ungültige Kombinationen / fängt Fehler ab | 35 % | 30 % | 15 % |
+| Auswirkung auf andere Teams (später auf E1/T1) | 5 % | 10 % | 25 % |
 | Nachvollziehbarkeit / Auditierbarkeit | 10 % | 20 % | 15 % |
-| Aufwand in der verfügbaren Zeit | 15 % | 20 % | 15 % |
+| Aufwand in der verfügbaren Zeit | 20 % | 20 % | 15 % |
 | Laufzeit (Demo, Betrieb) | 15 % | – | 15 % |
-| Übertragbarkeit auf weitere Stages / P1 | 10 % | 20 % | 15 % |
+| Übertragbarkeit auf E1/T1 bzw. P1 | 15 % | 20 % | 15 % |
+
+In der Probe-IPA ist „Auswirkung auf andere Teams“ niedrig gewichtet, weil Lab-D und Lab-C nur MQP gehören. Bewertet wird, wie sich die Testart **später auf E1** auswirken würde.
 
 **KO-Kriterien (für alle):** nur Open-Source-Funktionen ohne Beta-Label; kein Zugriff auf P1; README-Ergebnisse erfüllt.
 
@@ -259,8 +267,9 @@ Das KO-Kriterium „nur stabile Open-Source-Funktionen“ lohnt sich explizit, w
 
 Diese Punkte sind in der Doku nicht eindeutig beschrieben und sollten vor der Probe-IPA kurz in Lab getestet werden (Vorbereitung, nicht bewertet):
 
-- [ ] Laufen die Argo-Rollouts-CRDs **und** der Rollouts-Controller im Kargo-Cluster? (Ohne sie scheitert jede Verifikation.)
-- [ ] Ist Prometheus mit den `monitor_messages_*`-Metriken vom Kargo-Cluster aus erreichbar?
+- [ ] Laufen die Argo-Rollouts-CRDs **und** der Rollouts-Controller auf Lab-D? (Ohne sie scheitert jede Verifikation.)
+- [ ] Sammelt Prometheus Lab-C ein, und sind die `monitor_messages_*`-Metriken von Lab-D aus abfragbar?
+- [ ] Erreicht ein Job auf Lab-D die API von Lab-C (Leserechte, Netzwerk)?
 - [ ] Wie lange dauert eine Verifikation real (Rollout aller Broker + Messfenster)? Wichtig für die Demo-Planung.
 - [ ] Regel „Broker = neueste Version in der ArkMQ-Liste“ bestätigen.
 - [ ] Zeigt `middleware-docker` für `arkmq-org/activemq-artemis-operator` auch Tags, die noch nie gezogen wurden?

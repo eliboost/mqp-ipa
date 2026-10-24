@@ -2,7 +2,7 @@
 
 Welche Tests als Kargo-Verifikation für MQP wirklich etwas bringen (Stand 24.10.2026). Grundlage sind der Code der MQP-Repos, der Code von ArkMQ v2.1.7 / v2.2.2, Kargo v1.12.4 (Doku und Quellcode) und die Doku von Argo Rollouts. Ergänzt [NOTIZEN.md §9](NOTIZEN.md#9-tests-für-die-operatoren) und [VARIANTENENTSCHEIDE.md §2.1](VARIANTENENTSCHEIDE.md#21-testarten-bewerteter-variantenentscheid).
 
-**Einordnung:** Die Teststrategie ist das Thema der **Probe-IPA** (Lab → E1). In der IPA wird sie für T1 übernommen und ist dort Ausgangslage. Was nur T1 betrifft, ist unten als Ausblick markiert.
+**Einordnung:** Die Teststrategie ist das Thema der **Probe-IPA**. Entwickelt und nachgewiesen wird sie auf den MQP-Testclustern **Lab-D → Lab-C** mit der Kargo-Test-Instanz. In der IPA wird sie aus Git für E1 und T1 übernommen und ist dort Ausgangslage. Was nur E1/T1 betrifft, ist unten als Ausblick markiert.
 
 > Mit Unterstützung von KI (Claude) erstellt. Für die IPA deklarieren (A02 Punkt 3, Doc07 Punkt 6).
 
@@ -27,7 +27,7 @@ Welche Tests als Kargo-Verifikation für MQP wirklich etwas bringen (Stand 24.10
 | S | **Status aller Instanzen ohne Regression** | Verifikation, Job | unbedingt | Operator-Updates betreffen alle Broker im Cluster |
 | F | **Nachrichtenfluss (artemis-monitor)** | Verifikation, Prometheus | unbedingt | Einziger Test, der zeigt, dass Broker wirklich Nachrichten verarbeiten |
 | O | **Operator stabil (kein Dauer-Reconcile)** | Verifikation, Prometheus | sehr gut | Fängt den `Mismatch`-Dauerzustand und Crash-Loops ab, die bei „Ready“ durchrutschen können |
-| C | **Canary-Instanz anlegen und löschen** | Verifikation, Job | sehr gut (Lab, E1) | Einziger Test für den Weg „neue Instanz“ inklusive Zertifikat und Löschen |
+| C | **Canary-Instanz anlegen und löschen** | Verifikation, Job | sehr gut (Lab-D, Lab-C; später E1) | Einziger Test für den Weg „neue Instanz“ inklusive Zertifikat und Löschen |
 | M | Management-Zugriff (Jolokia, OPS UI) | Verifikation, Web | optional | Teilweise schon durch S abgedeckt |
 | U | Upgrade-Pfad n-1 → n | eigene Stage | Ausblick | Braucht den P1-Stand in einem Cluster |
 
@@ -70,7 +70,7 @@ Ein reiner Check „Ready=True“ reicht deshalb nicht. Es braucht zuerst den Na
 - PF- und Merge-Operator liefern Controller-Runtime-Metriken (`prometheus.io/port: 8080`, `/metrics`).
 - Der `artemis-monitor` liefert `monitor_messages_sent_total`, `_consumed_total`, `_consumed_errors_total`, `_delayed_total` und `monitor_e2e_duration` (`artemis-monitor/.../Metrics.java`). `delayed` zählt auch Nachrichten, die gar nicht gesendet werden konnten: Sie landen zuerst im Cache und laufen nach 10 s ab (`MessageCache.java`, `application.message.sla.delay=10000`).
 - Prometheus hat die Labels `kubernetes_cluster_name` und `kubernetes_namespace` (Beispiel in `documentation/docs/howto/alarming.md`).
-- Der Namespace `appl-mqp-test` existiert schon und ist leer (`deployments/appl-mqp-test`). Er eignet sich für die Canary-Instanz.
+- Der Namespace `appl-mqp-test` existiert auf Lab-D und E1 schon und ist leer (`deployments/appl-mqp-test`). Er eignet sich für die Canary-Instanz. Auf Lab-C muss er für die Probe-IPA angelegt werden.
 
 ---
 
@@ -135,6 +135,8 @@ Aus der Kargo-Doku und dem Kargo-Quellcode v1.12.4:
 | Einstellungen | `initialDelay` grösser als Rollout-Zeit + Messfenster (im Rolling Update sind verspätete Nachrichten normal); `interval: 1m`, `count: 5`, `failureLimit: 1` |
 | Fängt ab | Broker läuft und ist „Ready“, verarbeitet aber nichts (TLS, Acceptor, Auth, Journal) |
 | Voraussetzung | Prometheus muss vom Kargo-Cluster aus abfragbar sein, Cluster-Name als Stage-`vars` |
+| **Pflicht: Cluster-Filter** | Jede Abfrage filtert fest auf `kubernetes_cluster_name="{{args.cluster}}"`. Lab-D und E1 haben denselben Namespace (`appl-mqp-e2e-e1`) und Instanznamen (`e1-mqp-e2e-a`). Das Grafana-Dashboard „Artemis E2E Monitor“ mischt deshalb nachweislich beide Cluster (§6, Punkt 6). Ohne Filter könnte eine Stage grün sein, weil die Werte von einem anderen Cluster kommen |
+| Vorlage | Die PromQL der Panels im Dashboard „Artemis E2E Monitor“ (Grafana → Inspect → Query) übernehmen und um den Cluster-Filter ergänzen. Heutige Normalwerte auf E1: Verfügbarkeit 100 %, Delayed 0, Latenz p99 etwa 10–40 ms |
 
 ### O: Operator stabil (Prometheus)
 
@@ -145,7 +147,7 @@ Aus der Kargo-Doku und dem Kargo-Quellcode v1.12.4:
 | Fängt ab | `Mismatch`-Dauerzustand (DeepEqual nie gleich, Requeue alle 5 s, `pfactivemq_controller.go:100-108`), Crash-Loop durch `os.Exit(1)`, Speicherlecks |
 | Hinweis | Labelnamen (`controller`, Cluster-Label von kube-state-metrics) in Grafana prüfen. Zuerst in Lab mit `dryRun` laufen lassen |
 
-### C: Canary-Instanz (Job, nur Lab und E1)
+### C: Canary-Instanz (Job, Lab-D und Lab-C; später E1)
 
 | | |
 |---|---|
@@ -153,7 +155,7 @@ Aus der Kargo-Doku und dem Kargo-Quellcode v1.12.4:
 | Fängt ab | Neue Instanzen entstehen nach dem Upgrade nicht mehr korrekt; Probleme mit Zertifikat/cert-manager; hängende Finalizer beim Löschen (`DeletionReconciler`) |
 | Vorlage | Eine echte Instanz-Definition aus `activemq/instances` (z. B. die e2e-Instanz), **nicht** `testfiles/testrun/single.yaml` (siehe §6) |
 | Dauer | Zertifikat + Broker-Start + Löschen, in Lab messen |
-| Hinweis | Läuft am Merge-Operator vorbei. Das ist in einem MQP-eigenen Namespace vertretbar, gehört aber in die Abgrenzung. `appl-mqp-test` gibt es nur auf Lab und E1; auf T1 (IPA) weglassen, siehe [VARIANTENENTSCHEIDE §2.1](VARIANTENENTSCHEIDE.md#21-testarten-bewerteter-variantenentscheid) |
+| Hinweis | Läuft am Merge-Operator vorbei. Das ist in einem MQP-eigenen Namespace vertretbar, gehört aber in die Abgrenzung. In der Probe-IPA auf beiden Testclustern ohne Absprache möglich. In der IPA auf E1 nur nach Absprache, auf T1 weglassen, siehe [VARIANTENENTSCHEIDE §2.1](VARIANTENENTSCHEIDE.md#21-testarten-bewerteter-variantenentscheid) |
 
 ### M: Management-Zugriff (optional)
 
@@ -175,7 +177,7 @@ Kargo wartet auf Argo-CD-Health (Operator-Deployments)  ◄───────
 AnalysisRun (alle Metriken starten parallel):                      ▼
   V  Job: pollt bis Version da + Rollout fertig      (0 … ~30 min)
   S  Job: wartet selbst auf V-Kriterien, prüft dann Conditions
-  C  Job: legt Canary an, nachdem V-Kriterien erfüllt sind   (nur Lab/E1)
+  C  Job: legt Canary an, nachdem V-Kriterien erfüllt sind   (nicht auf T1)
   F  Prometheus: initialDelay ≥ Rollout + 5 min, dann 5 × 1 min
   O  Prometheus: initialDelay ≥ Rollout + 10 min, dann 1 Messung
 ```
@@ -186,20 +188,23 @@ Mein Vorschlag ist, V, S und C als **einen Job mit drei Phasen** umzusetzen. Dan
 
 | Stage | K | V | S | F | O | C | Arbeit |
 |---|---|---|---|---|---|---|---|
-| lab | ✓ | ✓ | ✓ | dryRun | dryRun | ✓ | Probe-IPA |
-| e1 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Probe-IPA |
+| lab-d (erste Stage) | ✓ | ✓ | ✓ | dryRun | dryRun | ✓ | Probe-IPA |
+| lab-c (zweite Stage, Modell für E1) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Probe-IPA |
+| e1 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (nach Absprache) | IPA (Ausblick) |
 | t1-nucleus / t1-pcilight | ✓ | ✓ | ✓ | ✓ | ✓ | – | IPA (Ausblick) |
+
+Auf Lab-C laufen keine Instanzen anderer Teams. Damit S aussagekräftig ist, laufen dort mehrere eigene Test-Instanzen (mindestens eine mit 1 und eine mit 2 Replicas) und ein `artemis-monitor` mit beiden Brokern in der URL. Für Lab-C **eindeutige Namen** verwenden (z. B. Namespace `appl-mqp-e2e-labc`, Instanz `labc-mqp-e2e-a`), damit sich Metriken nicht mit anderen Clustern mischen.
 
 **Fehlerfälle für die Demo der Probe-IPA (F&P04), je einer pro Testart:**
 
 | Fehler provozieren | Erwartet: blockiert durch |
 |---|---|
-| Init-Image 2.56 zu Broker 2.57 | K (Promotion in Lab bricht vor dem Commit ab) |
+| Init-Image 2.56 zu Broker 2.57 | K (Promotion in `lab-d` bricht vor dem Commit ab) |
 | Broker 2.57.0 mit ArkMQ v2.1.7 | K, sonst S (`BrokerVersionAligned=False`) |
 | Falsches Image-Tag, Pull schlägt fehl | V (Timeout) |
-| e2e-Instanz: Consumer-Port blockieren | F (auf E1; in Lab nur `dryRun`) |
+| Test-Instanz: Consumer-Port blockieren | F (auf `lab-c`; in `lab-d` nur `dryRun`) |
 
-In jedem Fall wird zusätzlich gezeigt, dass die Freight **nicht auf E1 promotet werden kann**. Das ist der Nachweis der Sperre (README, Ergebnis 4).
+In jedem Fall wird zusätzlich gezeigt, dass die Freight **nicht auf `lab-c` promotet werden kann**. Das ist der Nachweis der Sperre (README, Ergebnis 4).
 
 ---
 
@@ -210,19 +215,21 @@ Beim Lesen des Codes sind Punkte aufgefallen, die in den bisherigen Dateien fals
 1. **VARIANTENENTSCHEIDE.md §1:** Dort stand, für die Verifikation reichten die CRDs von Argo Rollouts. Das ist falsch, es braucht auch den Rollouts-Controller (§3). Ist korrigiert.
 2. **NOTIZEN.md §12 „Lab-d und Renovate“:** Nicht nur Lab-d, sondern **Lab, E1 und beide T1** verwenden `arkmq-org-broker-kubernetes`. Nur P1 hat noch `activemq-artemis-broker-kubernetes`. Die Renovate-Regex erkennt Broker-Updates deshalb auf **keinem Nicht-Prod-Cluster**. Das ist für Kargo wichtig: Die Image-Subscription muss den neuen Namen abonnieren.
 3. **NOTIZEN.md §9 „Vorlagen für die Canary-Instanz“:** `testfiles/testrun/single.yaml` und `multi.yaml` sind Fixtures für envtest (fake Secrets, `pause`-Image statt Broker). Als Canary taugen sie nicht.
-4. **artemis-monitor auf E1** verbindet sich zweimal mit `ssl-0` statt mit `ssl-0` und `ssl-1` (`deployments/appl-mqp-e2e/e1-k8s-pfnet-a/deployment.yaml`). Auf E1 wird also nur ein Broker getestet. Vor der Probe-IPA korrigieren, sonst ist Test F auf E1 nur halb so aussagekräftig.
+4. **artemis-monitor auf E1** verbindet sich zweimal mit `ssl-0` statt mit `ssl-0` und `ssl-1` (`deployments/appl-mqp-e2e/e1-k8s-pfnet-a/deployment.yaml`). Auf E1 wird also nur ein Broker getestet. Vor der IPA korrigieren, sonst ist Test F auf E1 nur halb so aussagekräftig. Auf Lab-C gleich richtig aufsetzen. Dass im Dashboard bei `ss-1` ein Consumer verbunden ist, widerspricht dem nicht: Der Wert kann vom Monitor auf Lab-D stammen (Punkt 6).
 5. **Go-Modul `v2.9.9` im PF-Operator** (offene Frage in NOTIZEN.md §4): Laut Go-Proxy stammt der Tag vom 11.06.2026, einen Tag vor ArkMQ v2.2.0, und zeigt auf einen Commit nahe v2.2.0. Im GitHub-Repo gibt es den Tag nicht mehr. Der PF-Operator kompiliert also gegen etwa den Stand von v2.2.0, nicht gegen eine „deutlich neuere API“.
+6. **Grafana-Dashboard „Artemis E2E Monitor“ mischt E1 und Lab-D** (geprüft am 24.10.2026): Mit Cluster `e1-k8s-pfnet-a` und Namespace `appl-mqp-e2e-e1` zeigt es zwei Monitor-Pods, `artemis-monitor-687fd587-xhlwm` und `artemis-monitor-7c89dcd99c-xn4p5`. Der zweite läuft laut `kubectl` auf **Lab-D**. Ursache: Lab-D verwendet denselben Namespace und Instanznamen wie E1, und die Panels filtern nicht (alle) nach Cluster. Passend dazu zeigt das Panel „Log Events“ die Stufe `debug`, die nur der Monitor auf Lab-D schreibt (`LOGGING_LEVEL_CH_POSTFINANCE_ACTIVEMQ: Debug`, alle anderen Cluster `Info`).
 
 ---
 
 ## 7. Offene Fragen
 
-- [ ] Auf welcher Kargo-Control-Plane läuft das MQP-Projekt (management-a oder Lab-D)? Läuft dort ein Argo-Rollouts-Controller, und welche Version hat er? `consecutiveSuccessLimit` gibt es erst ab Rollouts v1.8.
-- [ ] Wie erreichen Verifikations-Jobs aus dem Kargo-Cluster Lab und E1 (später T1)? Option a: Kubeconfig mit Leserechten pro Cluster als Secret. Option b: eigene Rollouts-Instanz mit Job-Kubeconfig und `controllerInstanceID` pro Shard. Vor der Probe-IPA klären.
+- [x] Auf welcher Kargo-Control-Plane läuft das MQP-Projekt? → Probe-IPA auf der Test-Instanz (Lab-D), IPA auf management-a.
+- [ ] Läuft auf Lab-D ein Argo-Rollouts-Controller, und welche Version hat er? `consecutiveSuccessLimit` gibt es erst ab Rollouts v1.8.
+- [ ] Wie erreichen Verifikations-Jobs von Lab-D aus Lab-C (in der IPA von management-a aus E1/T1)? Option a: Kubeconfig mit Leserechten pro Cluster als Secret. Option b: eigene Rollouts-Instanz mit Job-Kubeconfig und `controllerInstanceID` pro Shard. Vor der Probe-IPA klären.
 - [ ] Welche Prometheus-URL (direkt oder Thanos/Mimir) ist vom Kargo-Cluster aus erreichbar, und mit welcher Authentifizierung?
 - [ ] §2.1 in Lab bestätigen: Broker 2.57.0 mit ArkMQ v2.1.7 deployen und `BrokerVersionAligned` beobachten.
-- [ ] Wie lange dauert ein Rolling Update aller Broker auf Lab und E1? Das bestimmt `activeDeadlineSeconds` und `initialDelay`.
-- [ ] Erlaubt das Team die Canary-Instanz in `appl-mqp-test` auf E1? Sonst Rückfallvariante B.
+- [ ] Wie lange dauert ein Rolling Update aller Broker auf Lab-D und Lab-C? Das bestimmt `activeDeadlineSeconds` und `initialDelay`. Für E1 in der IPA neu messen (mehr Instanzen).
+- [ ] Für die IPA: Erlaubt das Team die Canary-Instanz in `appl-mqp-test` auf E1? Sonst dort ohne C.
 
 ---
 

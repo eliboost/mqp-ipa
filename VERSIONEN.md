@@ -159,6 +159,7 @@ Aus den Overlays von `kube-artemis-operator/envs` und `kube-pf-activemq-operator
 | Cluster | ArkMQ | PF-Operator | PF-CRD | Broker-Image | Init-Image |
 |---|---|---|---|---|---|
 | `e1-k8s-pfnet-lab-d` | v2.2.2 | 0.17.5 **(Staging-Registry)** | **`main` (ungepinnt)** | `arkmq-org-broker-kubernetes:artemis.2.57.0` | 2.57.202610080525 |
+| Lab-C | – | – | – | – | – (MQP wird für die Probe-IPA aufgebaut) |
 | `e1-k8s-pfnet-a` | v2.2.2 | 0.17.5 | v0.17.5 | `arkmq-org-broker-kubernetes:artemis.2.57.0` | 2.57.202610080525 |
 | `t1-k8s-nucleus-a` | v2.2.2 | 0.17.5 | v0.17.5 | `arkmq-org-broker-kubernetes:artemis.2.57.0` | 2.57.202610080525 |
 | `t1-k8s-pcilight-a` | v2.2.2 | 0.17.5 | v0.17.5 | `arkmq-org-broker-kubernetes:artemis.2.57.0` | 2.57.202610080525 |
@@ -274,18 +275,23 @@ Folgen:
 
 ## 8. Promotion mit Kargo
 
-Dieser Abschnitt beschreibt das **Zielbild der IPA**. Es beruht auf den Empfehlungen in [VARIANTENENTSCHEIDE.md §3](VARIANTENENTSCHEIDE.md#3-ipa-promotion-strategie-lab--t1): Freight-Variante A mit fester Vorgabe von Major.Minor, T1 parallel, Freigabe in Kargo (Lab automatisch, E1 und T1 manuell), Git überall per Push, gleiche Promotion-Schritte für alle Stages. Die Testarten (K, V, S, F, O, C) kommen aus der Probe-IPA ([TESTARTEN.md](TESTARTEN.md)).
+Dieser Abschnitt beschreibt das **Zielbild der IPA** auf der Kargo-Prod-Instanz (management-a). Es beruht auf den Empfehlungen in [VARIANTENENTSCHEIDE.md §3](VARIANTENENTSCHEIDE.md#3-ipa-promotion-strategie-lab--t1): Freight-Variante A mit fester Vorgabe von Major.Minor, T1 parallel, Freigabe in Kargo (Lab automatisch, E1 und T1 manuell), Git überall per Push, gleiche Promotion-Schritte für alle Stages. Die Testarten (K, V, S, F, O, C) kommen aus der Probe-IPA ([TESTARTEN.md](TESTARTEN.md)).
 
-**Was davon schon in der Probe-IPA läuft:**
+Ob die Stage `lab` im Zielbild Platz hat, hängt davon ab, ob management-a `argocd-lab` erreicht. Heute melden sich die Controller von Lab-D und Lab-C bei der Test-Instanz. Sonst beginnt die IPA-Pipeline bei E1, und die Diagramme unten verlieren die Stage `lab`.
 
-| | Probe-IPA (Lab → E1) | IPA (Zielbild) |
+**Probe-IPA und IPA im Vergleich:**
+
+| | Probe-IPA | IPA (Zielbild) |
 |---|---|---|
+| Kargo | Test-Instanz, Control-Plane Lab-D | Prod-Instanz, Control-Plane management-a |
 | Warehouse | vorläufig, vier Subscriptions, **ohne Regel** | Variante aus §3.1 der Variantenentscheide, z. B. feste Vorgabe |
-| Stages | `lab`, `e1` | `lab`, `e1`, `t1-nucleus`, `t1-pcilight` |
+| Stages | `lab-d`, `lab-c` (beide `argocd-lab`) | (`lab`,) `e1`, `t1-nucleus`, `t1-pcilight` |
 | Freigabe | beide manuell | Lab automatisch, E1 manuell nach Blog-Post, T1 manuell + Wartezeit |
-| Promotion-Schritte | K, Commits per Push, ArkMQ → PF | gleich, als gemeinsame `PromotionTask` |
-| Verifikation | **bewerteter Inhalt**: V, S, C, F/O (Lab `dryRun`) | übernommen, auf T1 ohne C |
-| Rechte | Verifikations-Jobs auf Lab/E1 | dazu `promote` pro Stage, P1 ausgeschlossen |
+| Promotion-Schritte | K, Commits per Push, ArkMQ → PF | gleich, als gemeinsame `PromotionTask` aus Git |
+| Verifikation | **bewerteter Inhalt**: V, S, C, F/O (`lab-d` mit `dryRun`) | aus Git übernommen, auf T1 ohne C |
+| Rechte | Verifikations-Jobs auf Lab-D/Lab-C | dazu `promote` pro Stage, P1 ausgeschlossen |
+
+Zwischen den Arbeiten bleibt das Projekt auf der Test-Instanz bestehen, betrifft aber nur Lab-D und Lab-C. Es gibt also keinen Konflikt mit dem Projekt auf management-a.
 
 ### 8.1 Warehouse: Versionen erkennen
 
@@ -433,7 +439,7 @@ sequenceDiagram
   K->>R: AnalysisRun mit erwarteten Versionen aus der Freight
   R->>C: V: Version angekommen, Rollout fertig
   R->>C: S: Conditions aller Instanzen
-  R->>C: C: Canary anlegen, testen, löschen (Lab/E1)
+  R->>C: C: Canary anlegen, testen, löschen (nicht auf T1)
   R->>R: F/O: Prometheus nach initialDelay
   R-->>K: Successful → Freight in Stage verifiziert
 ```
@@ -507,17 +513,19 @@ Zielbild der IPA. Beispiel: ArkMQ veröffentlicht **v2.3.0** mit **Artemis 2.58.
 
 ## 11. Vorbereitung vor der Probe-IPA
 
-- [ ] Vorläufiges Warehouse (vier Subscriptions, ohne Regel) und Stages `lab`/`e1` (beide manuell, Push) mit einfacher Promotion aufbauen. Bewusst vorläufig, wird in der IPA evaluiert.
+- [ ] **MQP auf Lab-C aufbauen:** Overlays `lab-c` in `kube-artemis-operator` und `kube-pf-activemq-operator`, ArgoCD-Apps in `argocd-lab`, mindestens zwei Test-Instanzen (1 und 2 Replicas), `artemis-monitor` mit beiden Brokern in der URL, Namespace für die Canary-Instanz, Prometheus für Lab-C. **Eindeutige Namen** (z. B. `appl-mqp-e2e-labc`, `labc-mqp-e2e-a`), weil Lab-D und E1 dieselben Namen verwenden und sich die Metriken im Dashboard schon heute mischen.
+- [ ] Vorläufiges Warehouse (vier Subscriptions, ohne Regel) und Stages `lab-d`/`lab-c` (beide manuell, Push) auf der Kargo-Test-Instanz mit einfacher Promotion aufbauen. Bewusst vorläufig, wird in der IPA evaluiert. Alles deklarativ in Git.
+- [ ] Kargo-Test-Instanz für die Dauer der Probe-IPA einfrieren (Absprache im Team).
 - [ ] Image-Argumente aus dem Inline-Patch (`patch: |-`) in eine eigene Datei verschieben. `yaml-update` kann nicht in einen Text-Block schreiben.
-- [ ] Lab-d klären: Staging-Image und CRD von `main` oder Release-Stand für die Kargo-Stage?
-- [ ] Renovate: Overlays von Lab und E1 in `ignorePaths` (T1 erst zur IPA); Regex für den Broker auf den neuen Namen umstellen; `depName` für ArkMQ auf `arkmq-org/arkmq-org-broker-operator`.
-- [ ] `artemis-monitor` auf E1 korrigieren (`ssl-0` doppelt statt `ssl-0` und `ssl-1`).
+- [ ] Lab-D klären: Staging-Image und CRD von `main` oder Release-Stand für die Stage `lab-d`?
+- [ ] Renovate: Overlays von Lab-D und Lab-C in `ignorePaths` (E1/T1 erst zur IPA); Regex für den Broker auf den neuen Namen umstellen; `depName` für ArkMQ auf `arkmq-org/arkmq-org-broker-operator`.
+- [ ] Für die IPA: `artemis-monitor` auf E1 korrigieren (`ssl-0` doppelt statt `ssl-0` und `ssl-1`).
 - [ ] Prüfen, ob Image-Tag und Release-Tag bei ArkMQ immer übereinstimmen (`2.2.2` ↔ `v2.2.2`).
 - [ ] In Artifactory prüfen, ob `middleware-docker` für `arkmq-org/activemq-artemis-operator` auch Tags zeigt, die noch nie gezogen wurden.
 - [ ] Matrix ArkMQ → Artemis als ConfigMap anlegen (aus `version/version.go`).
 - [ ] Regel „Broker = neueste Version in der ArkMQ-Liste“ in Lab bestätigen.
-- [ ] Rechte der Verifikations-Jobs auf Lab und E1 klären; Argo-Rollouts-Controller im Kargo-Cluster prüfen.
-- [ ] Ist `argocd-lab` an Kargo angebunden (Shard)?
+- [ ] Rechte der Verifikations-Jobs von Lab-D auf Lab-C klären; Argo-Rollouts-Controller auf Lab-D prüfen.
+- [ ] Für die IPA: Erreicht management-a `argocd-lab`, oder beginnt die Pipeline bei E1?
 - [ ] GitLab-History von `kube-artemis-operator/envs/*` für die Ist-Analyse auswerten (wann welche Version auf welchem Cluster).
 
 ---
