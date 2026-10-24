@@ -2,11 +2,13 @@
 
 Vorschläge für die Variantenentscheide der Probe-IPA und der IPA (Stand 24.10.2026). Grundlage sind die [Notizen](NOTIZEN.md), das [README](README.md) und die offizielle Kargo-Doku (docs.kargo.io, aktuelles Release **v1.12.4** vom 12.10.2026).
 
+**Aufteilung (seit 24.10.2026):** Die Probe-IPA behandelt die **Teststrategie** für Lab → E1. Die IPA behandelt die **Promotion-Strategie** für Lab → E1 → T1 und baut auf den Tests der Probe-IPA auf. Begründung im [README](README.md#übersicht).
+
 ## Inhalt
 
 1. [Was Kargo on-prem (Open Source) bietet](#1-was-kargo-on-prem-open-source-bietet)
-2. [Probe-IPA](#2-probe-ipa)
-3. [IPA](#3-ipa)
+2. [Probe-IPA: Teststrategie Lab → E1](#2-probe-ipa-teststrategie-lab--e1)
+3. [IPA: Promotion-Strategie Lab → T1](#3-ipa-promotion-strategie-lab--t1)
 4. [Vorgehen bei der Bewertung (A16)](#4-vorgehen-bei-der-bewertung-a16)
 5. [In Lab zu prüfen](#5-in-lab-zu-prüfen)
 6. [Quellen](#6-quellen)
@@ -21,8 +23,9 @@ Alle Varianten unten nutzen nur Funktionen, die in der Open-Source-Version stabi
 
 | Bereich | Funktion | Wofür bei uns |
 |---|---|---|
-| Warehouse | Subscriptions `image`, `git`, `chart` | Broker-, Init- und PF-Image; ArkMQ über Git-Tags oder Operator-Image |
+| Warehouse | Subscriptions `image`, `git`, `chart` | ArkMQ-, PF-, Broker- und Init-Image aus `repo.pnet.ch` |
 | Warehouse | `freightCreationCriteria` (Expression) | Freight nur erzeugen, wenn die Kombination gültig ist (z. B. Broker = Init) |
+| Warehouse | `allowTags`, `semverConstraint` | Major.Minor fest vorgeben |
 | Warehouse | `freightCreationPolicy: Manual` | Freight nur von Hand erzeugen (z. B. für Prod-Konzept) |
 | Stage | `requestedFreight[].sources.direct` / `stages` | Woher eine Stage Freight annimmt |
 | Stage | `availabilityStrategy: OneOf` / `All` | Fan-in: Freight erst nach Verifikation in allen Upstream-Stages (P1-Konzept) |
@@ -35,6 +38,7 @@ Alle Varianten unten nutzen nur Funktionen, die in der Open-Source-Version stabi
 | Freight | `kargo approve` | Freight für eine Stage freigeben ohne Upstream-Verifikation (Hotfix) |
 | Verifikation | `kargo verify stage` (auch `--abort`) | Verifikation erneut laufen lassen |
 | Rollback | ältere Freight promoten → Auto-Promotion-Hold | Rollback ohne neues Tooling |
+| Promotion | `PromotionTask` | Gleiche Schritte für alle Stages, Werte pro Stage |
 | Promotion-Steps | `git-clone`, `kustomize-set-image`, `yaml-update`, `git-commit`, `git-push`, `git-open-pr`, `git-wait-for-pr`, `argocd-update`, `argocd-wait`, `http`, `fail`, `set-metadata` | Overlays schreiben, Apps in Reihenfolge synchronisieren, Vorprüfungen |
 | Expressions | `imageFrom`, `commitFrom`, `semverParse`, `semverDiff`, `configMap`, `warehouse` | Versionen auslesen, Major.Minor vergleichen, Matrix aus ConfigMap lesen |
 
@@ -43,108 +47,134 @@ Alle Varianten unten nutzen nur Funktionen, die in der Open-Source-Version stabi
 | Funktion | Label | Ersatz in Open Source |
 |---|---|---|
 | `wait-for-approval`, `get-user-input` | Enterprise Beta | Auto-Promotion für die Stage aus + `promote`-Recht nur für berechtigte Personen |
-| `send-message` | Enterprise Beta | Info ans Team ausserhalb von Kargo (Chat, Mail), im Betriebskonzept festhalten |
+| `send-message` | Enterprise Beta | Info ans Team ausserhalb von Kargo (Blog-Post, Chat, Mail), im Betriebskonzept festhalten |
 | `git-merge-pr` | Beta | `git-open-pr` + `git-wait-for-pr`, Merge von Hand in GitLab |
 | `jira`, `snow-*`, `gh-*`, `gha-*`, `tf-*` | Enterprise Beta | nicht benötigt |
 | `toml-update`, `toml-parse`, `github-push` | Beta | nicht benötigt |
 
 ### Wichtig für die Verifikation
 
-- Kargo verwendet `AnalysisTemplate` und `AnalysisRun` von Argo Rollouts. Kargo **erzeugt** die AnalysisRun nur und liest danach ihre Phase. **Ausgewertet wird sie vom Argo-Rollouts-Controller**, der im Cluster der Kargo-Control-Plane laufen muss (Kargo-Quellcode v1.12.4, `pkg/rollouts/analysis_run_builder.go`; der Quickstart installiert Rollouts als eigenen Schritt). Fehlen die CRDs, schaltet Kargo die Integration ohne Meldung ab. Für den offenen Punkt im README heisst das: Es müssen CRDs **und** Controller vorhanden sein. *(Korrigiert am 24.10.2026: Vorher stand hier, die CRDs würden reichen.)*
-- Die Jobs einer AnalysisRun laufen deshalb im Cluster der Kargo-Control-Plane, nicht in Lab, E1 oder T1. Für Status-Checks braucht der Job also einen Zugriff auf den Ziel-Cluster (siehe [Entscheid 3.3](#33-ausführung-der-verifikationen)). Details zu den Testarten: [TESTARTEN.md](TESTARTEN.md).
+- Kargo verwendet `AnalysisTemplate` und `AnalysisRun` von Argo Rollouts. Kargo **erzeugt** die AnalysisRun nur und liest danach ihre Phase. **Ausgewertet wird sie vom Argo-Rollouts-Controller**, der im Cluster der Kargo-Control-Plane laufen muss (Kargo-Quellcode v1.12.4, `pkg/rollouts/analysis_run_builder.go`; der Quickstart installiert Rollouts als eigenen Schritt). Fehlen die CRDs, schaltet Kargo die Integration ohne Meldung ab. Es müssen also CRDs **und** Controller vorhanden sein.
+- Die Jobs einer AnalysisRun laufen deshalb im Cluster der Kargo-Control-Plane, nicht in Lab, E1 oder T1. Für Status-Checks braucht der Job einen Zugriff auf den Ziel-Cluster (siehe [§2.2](#22-ausführung-der-verifikationen-technischer-entscheid-nicht-bewertet)). Details zu den Testarten: [TESTARTEN.md](TESTARTEN.md).
 - Solange eine Verifikation läuft, warten andere Promotionen auf dieselbe Stage. Das ist für die Demo relevant (F&P04).
 
 ---
 
-## 2. Probe-IPA
+## 2. Probe-IPA: Teststrategie Lab → E1
 
-Thema: Freight-Modell und Promotion von Lab nach E1. Laut README gibt es nur **einen** bewerteten Variantenentscheid (A16). Ich empfehle, dass das Freight-Modell dieser Entscheid bleibt. Die Promotion-Mechanik (2.2) und der Health-Check (2.3) werden im Konzept begründet festgelegt, aber nicht als eigene Evaluation bewertet. So bleibt der Aufwand klein.
+Thema: Welche Verifikationen sichern eine neue Kombination in Lab und E1 ab? Es gibt **einen** bewerteten Variantenentscheid (Testarten). Die Ausführung der Verifikationen (§2.2) wird im Konzept begründet, aber nicht bewertet. Die Promotion (§2.3) ist Vorbereitung und bewusst vorläufig.
 
-### 2.1 Freight-Modell (bewerteter Variantenentscheid)
+### 2.1 Testarten (bewerteter Variantenentscheid)
 
-| | A: ein Warehouse | B: ein Warehouse pro Komponente | C: Artemis-Bundle + Operatoren getrennt |
-|---|---|---|---|
-| Aufbau | 1 Warehouse mit 4 Subscriptions (ArkMQ, PF-Image, Broker, Init) | 4 Warehouses, je eine eigene Pipeline lab → e1 | Warehouse `artemis` (Broker + Init), Warehouse `operators` (ArkMQ + PF). Jede Stage verlangt beide (`requestedFreight` mit 2 Einträgen) |
-| Broker = Init (Major.Minor) | `freightCreationCriteria` verhindert ungültige Freight | nicht abbildbar, Kargo kennt keine Abhängigkeit zwischen Pipelines | `freightCreationCriteria` im Warehouse `artemis` |
-| PF-Operator braucht passendes ArkMQ | in einer Freight festgelegt, Reihenfolge in den Promotion-Steps | nur über Konvention | im Warehouse `operators` festgelegt |
-| Reihenfolge ArkMQ vor PF | `argocd-update` ArkMQ-App, danach PF-App in derselben Promotion | über eigene Stages pro Komponente, doppelt so viele Stages | in der Promotion `operators`, aber Artemis und Operatoren können unabhängig voneinander promotet werden |
-| Nachvollziehbarkeit | 1 Freight = 1 getestete Gesamtkombination | Gesamtstand muss aus 4 Pipelines zusammengesucht werden | 2 Freights pro Stage |
-| Anzahl Freights | hoch (jede neue Version irgendeiner Komponente) | pro Pipeline niedrig, total am höchsten | mittel |
-| Komponente einzeln ausrollen | nein, immer die ganze Kombination (unveränderte Teile sind ein No-op) | ja | teilweise |
-| Erweiterung auf T1/P1 | einfach, nur Stages ergänzen | 4 × Stages pro Umgebung | 2 Pipelines pro Umgebung |
-| Aufwand Probe-IPA | klein | gross | mittel |
+Die Testarten sind in [TESTARTEN.md](TESTARTEN.md) beschrieben. Kurz:
 
-**Empfehlung: Variante A.** Unser Hauptproblem ist, dass ungültige Kombinationen heute nur durch Erfahrung verhindert werden. A ist die einzige Variante, bei der jede Freight eine vollständige und geprüfte Kombination ist. Sie lässt sich auch am einfachsten auf T1 und P1 erweitern. Der Nachteil, dass nichts einzeln ausgerollt werden kann, ist bei uns eher ein Vorteil: Eine Kombination soll immer als Ganzes durch die Stages laufen.
+| Kürzel | Testart | Wo in Kargo |
+|---|---|---|
+| K | Kompatibilität der Kombination (Matrix ArkMQ → Artemis, Broker = Init) | **vor** dem Commit, `fail`-Step in der Promotion |
+| V | Version angekommen, Rollout fertig | Verifikation, Job |
+| S | Status aller Instanzen ohne Regression | Verifikation, Job |
+| F | Nachrichtenfluss (`artemis-monitor`) | Verifikation, Prometheus |
+| O | Operator stabil (keine Neustarts, kein Dauer-Reconcile) | Verifikation, Prometheus |
+| C | Canary-Instanz anlegen, testen, löschen | Verifikation, Job |
 
-C ist die ehrliche Alternative, falls das Init-Image deutlich häufiger neu gebaut wird als die Operatoren und dadurch zu viele Freights entstehen. B scheidet am KO-Kriterium „ungültige Kombinationen verhindern“ aus.
-
-**Mögliche KO-Kriterien:** ungültige Kombination Broker/Init darf nicht promotbar sein; P1 darf nicht beschrieben werden.
-
-**Zu beachten:** Das Init-Image hat das Tag-Format „Artemis-Version + Zeitstempel“. Die Criteria-Expression muss den Major.Minor-Teil aus dem Tag ziehen. In `freightCreationCriteria` sind nur die `repoURL`-Formen von `imageFrom` und `commitFrom` erlaubt. Ob `semverParse` dort auch verwendbar ist, sagt die Doku nicht → in Lab prüfen. Plan B ist ein `fail`-Step am Anfang der Promotion (siehe 3.1).
-
-### 2.2 Promotion-Mechanik (festgelegt, nicht bewertet)
-
-| Frage | Optionen | Vorschlag Probe-IPA | Begründung |
-|---|---|---|---|
-| Wie kommt die Änderung ins Repo? | a) `git-push` direkt auf `main`; b) `git-open-pr` + `git-wait-for-pr`, Merge von Hand in GitLab; c) eigener Branch pro Stage, auf den die ArgoCD-App zeigt | **a für Lab, b für E1** | Lab ist eine Spielwiese. Für E1 ist ein MR zusätzlich der sichtbare Nachweis für die Teams. Das automatische Mergen (`git-merge-pr`) ist Beta und fällt weg |
-| Zwei Repos pro Cluster | ein Promotion-Template mit zwei `git-clone`/`git-push`-Blöcken | eine Promotion schreibt beide Repos | atomar aus Sicht von Kargo, auch wenn es zwei Commits sind |
-| Reihenfolge | `argocd-update` ArkMQ-App → `argocd-wait` → `argocd-update` PF-App | so umsetzen | PF-Operator hängt von ArkMQ ab, nicht umgekehrt ([Notizen §4](NOTIZEN.md#4-abhängigkeit-pf-operator-und-arkmq)) |
-| Freigabe | Auto-Promotion pro Stage über `ProjectConfig.promotionPolicies` | `lab` automatisch, `e1` manuell | entspricht dem README (Probe-IPA: manuelle Promotion nach E1) |
-| P1 ausschliessen | keine P1-Stage; Kargo-Credentials ohne Schreibrecht auf P1-Pfade; CODEOWNERS | alle drei | C08 |
-
-Bei Variante b muss vorher klar sein, ob `git-open-pr` mit unserem GitLab (`gitlab.pnet.ch`) funktioniert → in Lab prüfen.
-
-### 2.3 Health-Check (fester Umfang, kein Variantenentscheid)
-
-Das README verlangt als Ergebnis 4 `ActiveMQBrokersReady=True`. Das entspricht den Testarten **1 + 2** aus den Notizen (Variante A, minimal). Für die Probe-IPA wird also keine Teststrategie bewertet, sondern genau dieser Umfang umgesetzt:
-
-- Test 1 (Operator-Health) ist durch die implizite Argo-CD-Health gratis.
-- Test 2 (Reconcile-Status) ist ein `AnalysisTemplate` mit `job`-Provider, der `kubectl wait --for=condition=ActiveMQBrokersReady pfactivemq --all -A` gegen den Ziel-Cluster ausführt.
-
-Damit ist auch der Widerspruch zwischen Notizen und README aufgelöst: In der Probe-IPA gibt es keinen Testarten-Entscheid. Er ist Thema der IPA.
-
----
-
-## 3. IPA
-
-Thema: Verifikation und Gates von Lab bis T1. Laut README gibt es zwei bewertete Entscheide (Testarten und Promotion-Strategie). Dazu kommt ein kleinerer technischer Entscheid (3.3), der nicht bewertet werden muss, aber im Konzept begründet sein sollte.
-
-### 3.1 Testarten (bewerteter Variantenentscheid 1)
-
-Die Tests werden als Bündel verglichen ([Notizen §10](NOTIZEN.md#10-variantenentscheide)). Neu gegenüber den Notizen: Der **Kompatibilitätscheck (5) gehört vor die Promotion**, nicht in die Verifikation. Eine Verifikation läuft erst nach dem Deployment. Dann ist eine ungültige Kombination schon im Cluster. Kargo bietet dafür zwei Stellen, die beide Open Source sind:
-
-- `freightCreationCriteria` im Warehouse: Ungültige Freight entsteht gar nicht erst.
-- `fail`-Step am Anfang der Promotion: Er liest die Matrix mit `configMap('mqp-compat-matrix')` und bricht ab, bevor etwas geschrieben wird.
+Die Kompatibilitätsprüfung K gehört **vor** den Commit, nicht in die Verifikation. Eine Verifikation läuft erst nach dem Deployment, dann ist eine ungültige Kombination schon im Cluster. Weil K in den Promotion-Schritten steht, läuft sie auch dann, wenn jemand eine Freight mit `kargo approve` an Lab vorbei freigibt.
 
 | | A, minimal | B, Funktion | C, umfassend |
 |---|---|---|---|
-| Inhalt | 1 + 2 | 1 + 2 + 3 + 5 | 1 + 2 + 3 + 4 + 5 |
-| 1 Operator-Health | implizit (Argo CD) | implizit | implizit |
-| 2 Reconcile-Status | Job | Job | Job |
-| 3 Funktion (`monitor_messages_*`) | – | `prometheus`-Provider | `prometheus`-Provider |
-| 4 Canary-Instanz | – | – | Job: `PFActiveMQ` in eigenem Namespace anlegen, Nachricht senden, löschen |
-| 5 Kompatibilität | – | vor der Promotion (Criteria/`fail`) | vor der Promotion (Criteria/`fail`) |
-| Fängt ab | Crash, CRD-/API-Fehler | dazu: Broker verarbeitet nichts, ungültige Kombination | dazu: neue Instanzen werden nicht mehr korrekt angelegt |
-| Laufzeit pro Stage | Minuten | + Messfenster (z. B. 10 min) | + Anlegen und Löschen der Instanz |
-| Auswirkung auf andere Teams | keine | keine (nur lesen) | legt Ressourcen in E1/T1 an → Absprache nötig |
-| Aufwand | sehr klein | klein | mittel |
-| README-Ergebnis „mind. 3 Testarten“ | **nicht erfüllt** | erfüllt | erfüllt |
+| Inhalt | V + S | K + V + S + F | K + V + S + F + O + C |
+| Fängt ab | Crash, CRD-/API-Fehler, veralteter Status | dazu: Broker verarbeitet nichts, ungültige Kombination vor dem Commit | dazu: Dauer-Reconcile, neue Instanzen werden nicht mehr korrekt angelegt |
+| Laufzeit pro Stage | Rollout aller Broker | + Messfenster (z. B. 10 min) | + Anlegen und Löschen der Instanz |
+| Auswirkung auf andere Teams | keine | keine (nur lesen) | legt auf E1 eine Instanz in `appl-mqp-test` an → Absprache nötig |
+| Aufwand | klein | mittel | gross |
+| README-Ergebnis (V, S, F + K) | **nicht erfüllt** | erfüllt | erfüllt |
 
-**Empfehlung: Variante C, aber mit Test 4 nur in `lab` und `e1`.** Auf T1 läuft B. Begründung:
+**Empfehlung: Variante C**, abgestuft pro Stage:
 
-- Test 4 ist die aussagekräftigste Prüfung für den Fall „Upgrade kaputt, bestehende Broker laufen aber weiter“. Das fängt sonst kein Test ab.
-- Auf T1 (Testteams, gleiche Topologie wie P1) sollen möglichst keine fremden Ressourcen entstehen. Dort reicht B, weil die Kombination schon in Lab und E1 die Canary-Prüfung bestanden hat.
-- Damit ist die Variantenbewertung nicht nur „C gewinnt, weil es am meisten ist“, sondern es gibt eine begründete Abstufung pro Stage. Das macht A16 stärker.
+| Stage | K | V | S | F | O | C |
+|---|---|---|---|---|---|---|
+| lab | ✓ | ✓ | ✓ | `dryRun` | `dryRun` | ✓ |
+| e1 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-Variante A fällt am KO-Kriterium „README-Ergebnis 1 erfüllt“ heraus. B ist die Rückfallvariante, falls die Canary-Instanz in E1 vom Team nicht erlaubt wird.
+Begründung:
 
-**Welche Tests blockieren?** In Kargo blockiert jede fehlgeschlagene Verifikation die Freight für die nächste Stage. Soll ein Test nur informieren, kann die Metrik im AnalysisTemplate auf `dryRun` gesetzt werden. Das ist eine Funktion von Argo Rollouts. Kargo übernimmt `dryRun` aus dem Template in die AnalysisRun (Quellcode v1.12.4), und der Rollouts-Controller wertet es aus. Mein Vorschlag: Test 3 in Lab nur informativ (Lab-Broker haben wenig Last und das Messfenster ist unzuverlässig), ab E1 blockierend.
+- V ist die Grundlage für alles andere. Der Status des PF-Operators kann veraltet sein (kein `observedGeneration`), ohne V messen die anderen Tests eventuell noch den alten Stand.
+- C ist die einzige Prüfung für den Fall „Upgrade kaputt, bestehende Broker laufen aber weiter“.
+- F und O sind in Lab nur informativ: Lab-Broker haben wenig Last, und das Messfenster ist unzuverlässig. Ab E1 blockieren sie.
+- Die Abstufung pro Stage macht die Bewertung stärker als „C gewinnt, weil es am meisten ist“.
 
-**Upgrade-Pfad (6)** bleibt Ausblick für D03. Er bräuchte eine Stage mit dem P1-Stand (2.53 / v2.1.7 / 0.17.1), und die gibt es in keinem Cluster.
+Variante A fällt am KO-Kriterium „README-Ergebnisse erfüllt“ heraus. **B ist die Rückfallvariante**, falls die Canary-Instanz auf E1 vom Team nicht erlaubt wird.
+
+**Welche Tests blockieren?** In Kargo blockiert jede nicht erfolgreiche Verifikation die Freight für die nächste Stage, auch `Inconclusive`. Soll ein Test nur informieren, wird die Metrik im AnalysisTemplate auf `dryRun` gesetzt. Kargo übernimmt `dryRun` aus dem Template (Quellcode v1.12.4), der Rollouts-Controller wertet es aus.
+
+**Upgrade-Pfad (U)** bleibt Ausblick. Er bräuchte eine Stage mit dem P1-Stand (2.53 / v2.1.7 / 0.17.1), und die gibt es in keinem Cluster.
+
+### 2.2 Ausführung der Verifikationen (technischer Entscheid, nicht bewertet)
+
+Die Jobs laufen im Kargo-Cluster. Die Status-Checks brauchen aber Daten aus Lab und E1.
+
+| Variante | Wie | Pro | Contra |
+|---|---|---|---|
+| a) Job mit Kubeconfig | Pro Ziel-Cluster ein ServiceAccount mit nur Leserechten auf `pfactivemqs`, `activemqartemises`, StatefulSets und Pods, Token als Secret im Kargo-Projekt | einfach, genau | Secrets pro Cluster verwalten |
+| b) Prometheus | Status über kube-state-metrics (Custom Resource State) abfragen | kein Cluster-Zugriff | kube-state-metrics muss die CRs exportieren, eher nicht vorhanden |
+| c) `web`-Provider | direkt gegen die K8s-API | kein Job-Pod | Token im Template, unübersichtlich |
+
+**Empfehlung: a für V, S und C, Prometheus für F und O.** Die Leserechte pro Cluster sind gleich ein Baustein für C08 (Least Privilege). Für C braucht der ServiceAccount zusätzlich Schreibrechte, aber nur im Namespace `appl-mqp-test`.
+
+### 2.3 Promotion als Voraussetzung (Vorbereitung, nicht bewertet)
+
+Damit die Verifikation läuft, braucht es Warehouse, Stages und eine Promotion. Sie werden **vor** der Probe-IPA aufgebaut und sind **bewusst vorläufig**, damit die Entscheide der IPA offen bleiben.
+
+| Punkt | Vorläufig in der Probe-IPA | Wird in der IPA entschieden |
+|---|---|---|
+| Freight | ein Warehouse mit vier Subscriptions, **ohne** `freightCreationCriteria` und ohne feste Vorgabe. Ungültige Kombinationen fängt K ab | Freight-Modell (§3.1) |
+| Stages | `lab` (Freight direkt vom Warehouse), `e1` (Freight nur aus `lab`, nach erfolgreicher Verifikation) | Topologie mit T1 (§3.2 a) |
+| Freigabe | beide Stages **manuell** | automatisch oder manuell pro Übergang (§3.2 c) |
+| Git | `git-push` direkt | Git-Weg (§3.2 c) |
+| Reihenfolge | `argocd-update` ArkMQ-App → `argocd-wait` → PF-App | bestätigt (§3.2 b) |
+| P1 | keine Stage, keine Rechte | Konzept |
+
+Die Sperre „E1 nur nach grüner Verifikation in Lab“ kommt aus `sources.stages: [lab]`. Sie ist Teil der Teststrategie und wird in der Probe-IPA nachgewiesen (Fehlerfall provozieren).
+
+---
+
+## 3. IPA: Promotion-Strategie Lab → T1
+
+Thema: Wie kommt eine Version sicher von Lab bis auf beide T1-Cluster? Es gibt zwei bewertete Entscheide (Freight-Modell und Promotion-Strategie). Die Verifikation aus der Probe-IPA ist Ausgangslage. Zielbild: [VERSIONEN.md §8](VERSIONEN.md#8-promotion-mit-kargo).
+
+### 3.1 Freight-Modell (bewerteter Variantenentscheid 1)
+
+**a) Aufteilung der Komponenten**
+
+| | A: ein Warehouse | B: ein Warehouse pro Komponente | C: Artemis-Bundle + Operatoren getrennt |
+|---|---|---|---|
+| Aufbau | 1 Warehouse mit 4 Subscriptions (ArkMQ, PF, Broker, Init) | 4 Warehouses, je eine eigene Pipeline | Warehouse `artemis` (Broker + Init), Warehouse `operators` (ArkMQ + PF). Jede Stage verlangt beide (`requestedFreight` mit 2 Einträgen) |
+| Broker = Init (Major.Minor) | im Warehouse abbildbar | nicht abbildbar, Kargo kennt keine Abhängigkeit zwischen Pipelines | im Warehouse `artemis` |
+| ArkMQ ↔ Broker-Version | in einer Freight, abbildbar | nicht abbildbar | **über zwei Warehouses verteilt**, nicht abbildbar |
+| Reihenfolge ArkMQ vor PF | in derselben Promotion | über eigene Stages pro Komponente, viermal so viele Stages | in der Promotion `operators` |
+| Nachvollziehbarkeit | 1 Freight = 1 getestete Gesamtkombination | Gesamtstand aus 4 Pipelines zusammensuchen | 2 Freights pro Stage |
+| Komponente einzeln ausrollen | nein (unveränderte Teile sind ein No-op) | ja | teilweise |
+| Erweiterung auf P1 | nur Stages ergänzen | 4 × Stages pro Umgebung | 2 Pipelines pro Umgebung |
+
+ArkMQ und Broker-Version sind enger gekoppelt als ursprünglich angenommen ([VERSIONEN.md §5](VERSIONEN.md#5-abhängigkeiten-zwischen-den-versionen)). Damit spricht noch mehr für A: Bei C liegen ArkMQ und Broker in verschiedenen Warehouses.
+
+**b) Wie die Regel im Warehouse steht** ([VERSIONEN.md §8.2](VERSIONEN.md#82-wie-aus-den-versionen-eine-freight-wird))
+
+| | 1: `freightCreationCriteria` | 2: feste Vorgabe von Major.Minor |
+|---|---|---|
+| Wie | Ausdruck vergleicht Major.Minor von Broker und Init | `allowTags`/`semverConstraint` für Broker, Init und ArkMQ auf die aktuelle Minor |
+| Deckt ab | Broker = Init | Broker = Init **und** ArkMQ ↔ Broker |
+| Minor-Upgrade von Artemis | automatisch, sobald alle Images da sind | bewusste Änderung am Warehouse (passt zum Blog-Post) |
+| Patches, neue Init-Builds, PF-Releases | automatisch | automatisch |
+| Blockade | eine fehlende Komponente blockiert alle anderen | keine, 2.58 ist bis zur Änderung unsichtbar |
+| Matrix nötig | ja, für ArkMQ ↔ Broker | nein |
+
+**Empfehlung: A mit fester Vorgabe (A2).** Jede Freight ist eine vollständige, gültige Kombination. Minor-Upgrades sind bei MQP selten, kommen mit einem ArkMQ-Release und sind ohnehin ein bewusster Entscheid. Die Prüfung K aus der Probe-IPA bleibt als zweite Sicherung.
+
+**KO-Kriterien:** ungültige Kombination darf nicht promotbar sein; P1 darf nicht beschrieben werden. B scheidet aus.
 
 ### 3.2 Promotion-Strategie (bewerteter Variantenentscheid 2)
 
-Die Promotion-Strategie hat drei Achsen. Ich würde sie als **drei Teilentscheide in einer Bewertung** zeigen, sonst wird die Tabelle unübersichtlich.
+Vier Teilentscheide in einer Bewertung.
 
 #### a) Stage-Topologie
 
@@ -154,54 +184,55 @@ Die Promotion-Strategie hat drei Achsen. Ich würde sie als **drei Teilentscheid
 | Durchlaufzeit | länger (eine Verifikation mehr in Serie) | kürzer |
 | Risiko | Fehler auf t1-nucleus erreicht pcilight nicht | Fehler trifft beide T1-Cluster gleichzeitig |
 | Übertragbarkeit auf P1 | p1 hängt an t1-pcilight | p1-Stages verlangen `availabilityStrategy: All` über beide T1-Stages |
-| Aussagekraft T1 als Generalprobe | gut | gut, und gleiche Struktur wie später P1 |
 
-**Empfehlung: parallel.** Die Verifikation auf E1 hat dieselbe Kombination schon geprüft. Der Stack (Operatoren, Images) ist auf beiden T1-Clustern gleich. Ob sich nucleus und pcilight sonst relevant unterscheiden (Netzzone, Last), sollte in der Ist-Analyse kurz geklärt werden. Wichtiger: Das P1-Konzept lässt sich mit `availabilityStrategy: All` direkt daran anhängen. „P1 erst, wenn beide T1 grün sind“ ist dann eine Konfiguration und keine Konvention mehr.
+**Empfehlung: parallel.** E1 hat die Kombination schon geprüft. Der Stack ist auf beiden T1-Clustern gleich; ob sich nucleus und pcilight sonst relevant unterscheiden (Netzzone, Last), wird in der Ist-Analyse geklärt. Wichtiger: „P1 erst, wenn beide T1 grün sind“ wird mit `availabilityStrategy: All` eine Konfiguration statt einer Konvention.
 
 #### b) Komponentenebene
 
 | | In einer Promotion nacheinander | Getrennte Stages pro Komponente |
 |---|---|---|
-| Aufbau | Promotion-Steps: ArkMQ-App sync → `argocd-wait` → PF-App sync | z. B. `e1-arkmq` → `e1-pf` |
+| Aufbau | ArkMQ-App sync → `argocd-wait` → PF-App sync | z. B. `e1-arkmq` → `e1-pf` |
 | Hängt zusammen mit | Freight-Modell A oder C | Freight-Modell B |
-| Verifikation | einmal für die ganze Kombination | pro Komponente, Zwischenzustände werden mitgetestet |
 
-**Empfehlung: in einer Promotion nacheinander.** Das folgt aus dem Freight-Modell der Probe-IPA. Die IPA muss diesen Teilentscheid nur kurz begründen, nicht neu aufrollen.
+**Empfehlung: in einer Promotion nacheinander.** Folgt aus dem Freight-Modell A.
 
-#### c) Freigabe pro Übergang
+#### c) Freigabe und Git-Weg pro Übergang
 
-In Open Source gibt es zwei Gate-Arten: automatisch (`autoPromotionEnabled: true`) oder manuell (Auto-Promotion aus, `promote`-Recht nur für berechtigte Personen). Die Enterprise-Funktion `wait-for-approval` fällt weg. Als Zusatz gibt es `requiredSoakTime`.
+In Open Source gibt es zwei Arten von Freigabe: automatisch (`autoPromotionEnabled: true`) oder manuell (Auto-Promotion aus, `promote`-Recht nur für berechtigte Personen). `wait-for-approval` (Enterprise) fällt weg. Als Zusatz gibt es `requiredSoakTime`.
 
 | Übergang | Variante 1: alles automatisch | Variante 2: gemischt | Variante 3: alles manuell |
 |---|---|---|---|
 | → lab | auto | auto | manuell |
-| lab → e1 | auto | auto nach Verifikation | manuell |
-| e1 → t1 | auto | **manuell** + `requiredSoakTime` auf e1 | manuell |
+| lab → e1 | auto | **manuell nach Blog-Post** | manuell |
+| e1 → t1 | auto | **manuell** + `requiredSoakTime` 336h auf e1 | manuell |
+| Git | Push | Push | Push |
 
-**Empfehlung: Variante 2**, wie im README vorgesehen. Ergänzungen:
+**Empfehlung: Variante 2.**
 
-- Für `e1` `selectionPolicy: MatchUpstream` setzen. So wird automatisch genau die Freight promotet, die in Lab läuft, und nicht einfach die neueste.
-- `requiredSoakTime` auf dem Übergang e1 → t1 (z. B. `24h` im Betrieb). Für die Demo einen kurzen Wert setzen und das in der Doku begründen.
-- Das manuelle Gate ist über RBAC umgesetzt: Rolle mit `promote` auf `resourceNames: [t1-nucleus, t1-pcilight]`, gebunden an die Gruppe, die T1 freigeben darf. Das deckt C08 direkt ab.
-- KO-Kriterium für Variante 1: „darf andere Teams auf T1 nicht ohne Absprache beeinträchtigen“.
+- Die Freigabe liegt immer in Kargo, Git überall per Push. Eine Art Freigabe, eine Historie, die Kargo-Rechte decken alles ab (C08).
+- Der Blog-Post vor E1 und die zwei Wochen Pause aus `documentation/docs/infra/guides/platform.md` werden zu festen Stellen im Ablauf.
+- Die manuellen Freigaben sind über RBAC umgesetzt: Rolle mit `promote` auf `resourceNames: [e1]` bzw. `[t1-nucleus, t1-pcilight]`.
+- Für die Demo einen kurzen `requiredSoakTime` setzen und begründen.
+- KO-Kriterium für Variante 1: „darf andere Teams nicht ohne Absprache beeinträchtigen“.
+
+Ein MR (`git-open-pr` + `git-wait-for-pr`) ist nur dort sinnvoll, wo ein Vier-Augen-Prinzip nötig ist. Das gilt für **P1** (Change-Prozess, Muster wie auf management-a: Kargo öffnet ein MR, das im SPOC-Board landet), nicht für E1 und T1.
+
+#### d) Gleiche Schritte oder pro Stage unterschiedlich
+
+| | Gleiche Schritte für alle Stages | Schritte pro Stage unterschiedlich |
+|---|---|---|
+| Umsetzung | eine `PromotionTask`, pro Stage nur andere Werte (Cluster, Pfade, Apps) | eigenes Template pro Stage |
+| Lab testet das Ausrollen mit | ja | nur teilweise |
+| Pflege | ein Ort | pro Stage |
+| Übertragbarkeit auf P1 | neue Stage ruft dieselbe Task auf | neues Template |
+
+**Empfehlung: gleiche Schritte, unterschiedliche Tore.** Strenger werden mit der Stage nur die Kontrollen davor (Freigabe, Wartezeit) und danach (Verifikation). Die Kompatibilitätsprüfung K läuft in jeder Stage. Mit Variante 2 aus c) gibt es keine Ausnahme mehr, weil Git überall per Push läuft.
 
 #### Rollback (für das eigene Kriterium Gate- und Rollback-Strategie)
 
-- Rollback = ältere Freight erneut auf die Stage promoten. Kargo setzt dann automatisch einen Auto-Promotion-Hold (`status.autoPromotionHolds`). Die Stage wird nicht sofort wieder überschrieben. Der Hold wird aufgehoben, sobald wieder der aktuelle Kandidat promotet wird.
-- Grenzen in der Doku festhalten: CRD-Downgrade und Broker-Journal ([Notizen §8](NOTIZEN.md#8-technische-stolpersteine-für-kargo), Punkt 9). Ein Rollback des PF-Operators innerhalb derselben CRD-Version ist unkritisch. Ein Rollback über eine Artemis-Minor-Version ist es nicht.
-- Hotfix: `kargo approve` macht eine Freight für eine Stage verfügbar, ohne die Upstream-Verifikation. Das sollte nur Admins erlaubt sein (dafür braucht es die gleichen Rechte wie für die Promotion).
-
-### 3.3 Ausführung der Verifikationen (technischer Entscheid, nicht bewertet)
-
-Die Jobs laufen im Kargo-Cluster. Die Status-Checks brauchen aber Daten aus Lab, E1 und T1.
-
-| Variante | Wie | Pro | Contra |
-|---|---|---|---|
-| a) Job mit Kubeconfig | Pro Ziel-Cluster ein ServiceAccount mit nur Leserechten auf `pfactivemqs` und `activemqartemises`, Token als Secret im Kargo-Projekt | einfach, genau | Secrets pro Cluster verwalten |
-| b) Prometheus | Status über kube-state-metrics (Custom Resource State) abfragen | kein Cluster-Zugriff | kube-state-metrics muss die CRs exportieren, eher nicht vorhanden |
-| c) `web`-Provider | direkt gegen die K8s-API | kein Job-Pod | Token im Template, unübersichtlich |
-
-**Empfehlung: a für Test 2 und 4, Prometheus für Test 3.** Die Leserechte pro Cluster sind gleich ein Baustein für C08 (Least Privilege). Für Test 4 braucht der ServiceAccount zusätzlich Schreibrechte, aber nur im Canary-Namespace.
+- Rollback = ältere Freight erneut auf die Stage promoten. Kargo setzt dann einen Auto-Promotion-Hold (`status.autoPromotionHolds`). Er wird aufgehoben, sobald wieder der aktuelle Kandidat promotet wird.
+- Grenzen in der Doku festhalten: CRD-Downgrade und Broker-Journal ([Notizen §8](NOTIZEN.md#8-technische-stolpersteine-für-kargo), Punkt 9). Ein Rollback des PF-Operators innerhalb derselben CRD-Version ist unkritisch, einer über eine Artemis-Minor-Version nicht.
+- Hotfix: `kargo approve` macht eine Freight für eine Stage verfügbar, ohne die Upstream-Verifikation. Das sollte nur Admins erlaubt sein.
 
 ---
 
@@ -209,14 +240,14 @@ Die Jobs laufen im Kargo-Cluster. Die Status-Checks brauchen aber Daten aus Lab,
 
 A16 verlangt, Kriterien und Gewichtung **vor** der Bewertung festzulegen. Vorschlag:
 
-| Kriterium | Gewicht Probe-IPA (Freight-Modell) | Gewicht IPA (Testarten) | Gewicht IPA (Promotion) |
+| Kriterium | Probe-IPA (Testarten) | IPA (Freight-Modell) | IPA (Promotion) |
 |---|---|---|---|
 | Verhindert ungültige Kombinationen / fängt Fehler ab | 30 % | 30 % | 15 % |
-| Auswirkung auf andere Teams (E1/T1) | 10 % | 20 % | 25 % |
-| Nachvollziehbarkeit / Auditierbarkeit | 20 % | 10 % | 15 % |
-| Aufwand in der verfügbaren Zeit | 20 % | 15 % | 15 % |
-| Laufzeit (Demo, Betrieb) | – | 15 % | 15 % |
-| Übertragbarkeit auf P1 | 20 % | 10 % | 15 % |
+| Auswirkung auf andere Teams (E1/T1) | 20 % | 10 % | 25 % |
+| Nachvollziehbarkeit / Auditierbarkeit | 10 % | 20 % | 15 % |
+| Aufwand in der verfügbaren Zeit | 15 % | 20 % | 15 % |
+| Laufzeit (Demo, Betrieb) | 15 % | – | 15 % |
+| Übertragbarkeit auf weitere Stages / P1 | 10 % | 20 % | 15 % |
 
 **KO-Kriterien (für alle):** nur Open-Source-Funktionen ohne Beta-Label; kein Zugriff auf P1; README-Ergebnisse erfüllt.
 
@@ -229,11 +260,11 @@ Das KO-Kriterium „nur stabile Open-Source-Funktionen“ lohnt sich explizit, w
 Diese Punkte sind in der Doku nicht eindeutig beschrieben und sollten vor der Probe-IPA kurz in Lab getestet werden (Vorbereitung, nicht bewertet):
 
 - [ ] Laufen die Argo-Rollouts-CRDs **und** der Rollouts-Controller im Kargo-Cluster? (Ohne sie scheitert jede Verifikation.)
-- [ ] Funktioniert `semverParse` in `freightCreationCriteria`, und lässt sich Major.Minor aus dem Init-Image-Tag (Version + Zeitstempel) ziehen?
-- [ ] Unterstützt `git-open-pr` / `git-wait-for-pr` unser GitLab (`gitlab.pnet.ch`) inklusive Token-Rechten?
-- [ ] ArkMQ abonnieren: Git-Subscription auf die Tags von `arkmq-org/activemq-artemis-operator` (braucht Zugriff auf GitHub oder einen Mirror in GitLab) oder Image-Subscription auf das Operator-Image über unsere Registry
 - [ ] Ist Prometheus mit den `monitor_messages_*`-Metriken vom Kargo-Cluster aus erreichbar?
 - [ ] Wie lange dauert eine Verifikation real (Rollout aller Broker + Messfenster)? Wichtig für die Demo-Planung.
+- [ ] Regel „Broker = neueste Version in der ArkMQ-Liste“ bestätigen.
+- [ ] Zeigt `middleware-docker` für `arkmq-org/activemq-artemis-operator` auch Tags, die noch nie gezogen wurden?
+- [ ] Für die IPA: Funktionieren `let`, `split` und `trimPrefix` in `freightCreationCriteria`? (nur nötig, falls dort Variante A1 gewählt wird)
 
 ---
 
@@ -248,4 +279,4 @@ Diese Punkte sind in der Doku nicht eindeutig beschrieben und sollten vor der Pr
 - Kargo Docs, Expression Language: https://docs.kargo.io/user-guide/reference-docs/expressions
 - Kargo Docs, Access Controls: https://docs.kargo.io/user-guide/security/access-controls
 - Kargo Docs, Basic Installation: https://docs.kargo.io/operator-guide/basic-installation
-- Kargo Helm-Chart `values.yaml` (Rollouts-Integration): https://github.com/akuity/kargo/blob/main/charts/kargo/values.yaml
+- Kargo Quellcode v1.12.4: https://github.com/akuity/kargo/tree/v1.12.4

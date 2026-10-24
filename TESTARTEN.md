@@ -1,6 +1,8 @@
 # Testarten für die Kargo-Verifikation von MQP
 
-Welche Tests als Kargo-Verifikation für MQP wirklich etwas bringen (Stand 24.10.2026). Grundlage sind der Code der MQP-Repos, der Code von ArkMQ v2.1.7 / v2.2.2, Kargo v1.12.4 (Doku und Quellcode) und die Doku von Argo Rollouts. Ergänzt [NOTIZEN.md §9](NOTIZEN.md#9-tests-für-die-operatoren) und [VARIANTENENTSCHEIDE.md §3.1](VARIANTENENTSCHEIDE.md#31-testarten-bewerteter-variantenentscheid-1).
+Welche Tests als Kargo-Verifikation für MQP wirklich etwas bringen (Stand 24.10.2026). Grundlage sind der Code der MQP-Repos, der Code von ArkMQ v2.1.7 / v2.2.2, Kargo v1.12.4 (Doku und Quellcode) und die Doku von Argo Rollouts. Ergänzt [NOTIZEN.md §9](NOTIZEN.md#9-tests-für-die-operatoren) und [VARIANTENENTSCHEIDE.md §2.1](VARIANTENENTSCHEIDE.md#21-testarten-bewerteter-variantenentscheid).
+
+**Einordnung:** Die Teststrategie ist das Thema der **Probe-IPA** (Lab → E1). In der IPA wird sie für T1 übernommen und ist dort Ausgangslage. Was nur T1 betrifft, ist unten als Ausblick markiert.
 
 > Mit Unterstützung von KI (Claude) erstellt. Für die IPA deklarieren (A02 Punkt 3, Doc07 Punkt 6).
 
@@ -20,7 +22,7 @@ Welche Tests als Kargo-Verifikation für MQP wirklich etwas bringen (Stand 24.10
 
 | # | Testart | Wo in Kargo | Priorität | Warum |
 |---|---|---|---|---|
-| K | **Kompatibilität der Kombination** | vor der Promotion (`freightCreationCriteria`, `fail`-Step) | unbedingt | ArkMQ und Broker-Version sind enger gekoppelt als gedacht (§2.1) |
+| K | **Kompatibilität der Kombination** | vor dem Commit (`fail`-Step in der Promotion) | unbedingt | ArkMQ und Broker-Version sind enger gekoppelt als gedacht (§2.1) |
 | V | **Version angekommen, Rollout fertig** | Verifikation, Job | unbedingt | Der Status des PF-Operators kann veraltet sein (§2.2). Ohne V prüfen alle anderen Tests eventuell noch den alten Stand |
 | S | **Status aller Instanzen ohne Regression** | Verifikation, Job | unbedingt | Operator-Updates betreffen alle Broker im Cluster |
 | F | **Nachrichtenfluss (artemis-monitor)** | Verifikation, Prometheus | unbedingt | Einziger Test, der zeigt, dass Broker wirklich Nachrichten verarbeiten |
@@ -29,7 +31,7 @@ Welche Tests als Kargo-Verifikation für MQP wirklich etwas bringen (Stand 24.10
 | M | Management-Zugriff (Jolokia, OPS UI) | Verifikation, Web | optional | Teilweise schon durch S abgedeckt |
 | U | Upgrade-Pfad n-1 → n | eigene Stage | Ausblick | Braucht den P1-Stand in einem Cluster |
 
-**Kern der Empfehlung:** K, V, S und F sind das Minimum, das bei MQP wirklich schützt. O und C machen daraus eine starke IPA. Gegenüber Variante C in den Notizen verschiebt sich der Schwerpunkt: Der neue Test **V** ist wichtiger als die Canary-Instanz.
+**Kern der Empfehlung:** K, V, S und F sind das Minimum, das bei MQP wirklich schützt. O und C machen daraus eine starke Probe-IPA (Variante C). Gegenüber Variante C in den Notizen verschiebt sich der Schwerpunkt: Der neue Test **V** ist wichtiger als die Canary-Instanz.
 
 ---
 
@@ -100,7 +102,8 @@ Aus der Kargo-Doku und dem Kargo-Quellcode v1.12.4:
 |---|---|
 | Prüft | Broker = Init (Major.Minor); Broker-Version = neueste Version in der ArkMQ-Liste (§2.1); PF-Operator für diese ArkMQ-Version freigegeben |
 | Fängt ab | `os.Exit(1)` des PF-Operators; `BrokerVersionAligned=False` auf allen Instanzen; PF-Operator gegen falsche ArkMQ-API |
-| Umsetzung | Broker/Init: `freightCreationCriteria` im Warehouse. ArkMQ ↔ Broker ↔ PF: Matrix als ConfigMap im Kargo-Projekt, am Anfang der Promotion ein `fail`-Step mit `if:` auf `configMap('mqp-compat-matrix')` |
+| Umsetzung | Matrix als ConfigMap im Kargo-Projekt, am Anfang der Promotion ein `fail`-Step mit `if:` auf `configMap('mqp-compat-matrix')` (ArkMQ → Artemis) und auf Broker = Init (Major.Minor). Läuft in jeder Stage, auch bei `kargo approve` |
+| Probe-IPA / IPA | In der Probe-IPA ist K die einzige Prüfung vor dem Commit, weil das vorläufige Warehouse keine Regel hat. In der IPA kommt die Regel ins Warehouse (Freight-Modell), K bleibt als zweite Sicherung |
 | Vorteil | Es wird nichts deployt, wenn die Kombination ungültig ist. Eine Verifikation käme erst nach dem Schaden |
 | Matrix pflegen | Die Spalte ArkMQ → Artemis lässt sich aus `version/version.go` des ArkMQ-Release ablesen und später automatisch erzeugen |
 
@@ -150,7 +153,7 @@ Aus der Kargo-Doku und dem Kargo-Quellcode v1.12.4:
 | Fängt ab | Neue Instanzen entstehen nach dem Upgrade nicht mehr korrekt; Probleme mit Zertifikat/cert-manager; hängende Finalizer beim Löschen (`DeletionReconciler`) |
 | Vorlage | Eine echte Instanz-Definition aus `activemq/instances` (z. B. die e2e-Instanz), **nicht** `testfiles/testrun/single.yaml` (siehe §6) |
 | Dauer | Zertifikat + Broker-Start + Löschen, in Lab messen |
-| Hinweis | Läuft am Merge-Operator vorbei. Das ist in einem MQP-eigenen Namespace vertretbar, gehört aber in die Abgrenzung. Auf T1 weglassen, siehe [VARIANTENENTSCHEIDE §3.1](VARIANTENENTSCHEIDE.md#31-testarten-bewerteter-variantenentscheid-1) |
+| Hinweis | Läuft am Merge-Operator vorbei. Das ist in einem MQP-eigenen Namespace vertretbar, gehört aber in die Abgrenzung. `appl-mqp-test` gibt es nur auf Lab und E1; auf T1 (IPA) weglassen, siehe [VARIANTENENTSCHEIDE §2.1](VARIANTENENTSCHEIDE.md#21-testarten-bewerteter-variantenentscheid) |
 
 ### M: Management-Zugriff (optional)
 
@@ -181,41 +184,45 @@ Mein Vorschlag ist, V, S und C als **einen Job mit drei Phasen** umzusetzen. Dan
 
 **Pro Stage:**
 
-| Stage | K | V | S | F | O | C |
-|---|---|---|---|---|---|---|
-| lab | ✓ | ✓ | ✓ | dryRun | dryRun | ✓ |
-| e1 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| t1-nucleus / t1-pcilight | ✓ | ✓ | ✓ | ✓ | ✓ | – |
+| Stage | K | V | S | F | O | C | Arbeit |
+|---|---|---|---|---|---|---|---|
+| lab | ✓ | ✓ | ✓ | dryRun | dryRun | ✓ | Probe-IPA |
+| e1 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Probe-IPA |
+| t1-nucleus / t1-pcilight | ✓ | ✓ | ✓ | ✓ | ✓ | – | IPA (Ausblick) |
 
-**Fehlerfälle für die Demo (F&P04), je einer pro Testart:**
+**Fehlerfälle für die Demo der Probe-IPA (F&P04), je einer pro Testart:**
 
 | Fehler provozieren | Erwartet: blockiert durch |
 |---|---|
-| Init-Image 2.56 zu Broker 2.57 | K (Freight entsteht nicht) |
+| Init-Image 2.56 zu Broker 2.57 | K (Promotion in Lab bricht vor dem Commit ab) |
 | Broker 2.57.0 mit ArkMQ v2.1.7 | K, sonst S (`BrokerVersionAligned=False`) |
 | Falsches Image-Tag, Pull schlägt fehl | V (Timeout) |
-| e2e-Instanz: Consumer-Port blockieren | F |
+| e2e-Instanz: Consumer-Port blockieren | F (auf E1; in Lab nur `dryRun`) |
+
+In jedem Fall wird zusätzlich gezeigt, dass die Freight **nicht auf E1 promotet werden kann**. Das ist der Nachweis der Sperre (README, Ergebnis 4).
 
 ---
 
 ## 6. Korrekturen an den bisherigen Notizen
 
-Beim Lesen des Codes sind Punkte aufgefallen, die in den bisherigen Dateien falsch oder ungenau sind:
+Beim Lesen des Codes sind Punkte aufgefallen, die in den bisherigen Dateien falsch oder ungenau sind. Alle sind am 24.10.2026 in NOTIZEN.md nachgetragen.
 
 1. **VARIANTENENTSCHEIDE.md §1:** Dort stand, für die Verifikation reichten die CRDs von Argo Rollouts. Das ist falsch, es braucht auch den Rollouts-Controller (§3). Ist korrigiert.
 2. **NOTIZEN.md §12 „Lab-d und Renovate“:** Nicht nur Lab-d, sondern **Lab, E1 und beide T1** verwenden `arkmq-org-broker-kubernetes`. Nur P1 hat noch `activemq-artemis-broker-kubernetes`. Die Renovate-Regex erkennt Broker-Updates deshalb auf **keinem Nicht-Prod-Cluster**. Das ist für Kargo wichtig: Die Image-Subscription muss den neuen Namen abonnieren.
 3. **NOTIZEN.md §9 „Vorlagen für die Canary-Instanz“:** `testfiles/testrun/single.yaml` und `multi.yaml` sind Fixtures für envtest (fake Secrets, `pause`-Image statt Broker). Als Canary taugen sie nicht.
-4. **artemis-monitor auf E1** verbindet sich zweimal mit `ssl-0` statt mit `ssl-0` und `ssl-1` (`deployments/appl-mqp-e2e/e1-k8s-pfnet-a/deployment.yaml`). Auf E1 wird also nur ein Broker getestet. Vor der IPA korrigieren, sonst ist Test F auf E1 nur halb so aussagekräftig.
+4. **artemis-monitor auf E1** verbindet sich zweimal mit `ssl-0` statt mit `ssl-0` und `ssl-1` (`deployments/appl-mqp-e2e/e1-k8s-pfnet-a/deployment.yaml`). Auf E1 wird also nur ein Broker getestet. Vor der Probe-IPA korrigieren, sonst ist Test F auf E1 nur halb so aussagekräftig.
+5. **Go-Modul `v2.9.9` im PF-Operator** (offene Frage in NOTIZEN.md §4): Laut Go-Proxy stammt der Tag vom 11.06.2026, einen Tag vor ArkMQ v2.2.0, und zeigt auf einen Commit nahe v2.2.0. Im GitHub-Repo gibt es den Tag nicht mehr. Der PF-Operator kompiliert also gegen etwa den Stand von v2.2.0, nicht gegen eine „deutlich neuere API“.
 
 ---
 
 ## 7. Offene Fragen
 
 - [ ] Auf welcher Kargo-Control-Plane läuft das MQP-Projekt (management-a oder Lab-D)? Läuft dort ein Argo-Rollouts-Controller, und welche Version hat er? `consecutiveSuccessLimit` gibt es erst ab Rollouts v1.8.
-- [ ] Wie erreichen Verifikations-Jobs aus dem Kargo-Cluster Lab, E1 und T1? Option a: Kubeconfig mit Leserechten pro Cluster als Secret. Option b: eigene Rollouts-Instanz mit Job-Kubeconfig und `controllerInstanceID` pro Shard. Beides vor der Probe-IPA klären.
+- [ ] Wie erreichen Verifikations-Jobs aus dem Kargo-Cluster Lab und E1 (später T1)? Option a: Kubeconfig mit Leserechten pro Cluster als Secret. Option b: eigene Rollouts-Instanz mit Job-Kubeconfig und `controllerInstanceID` pro Shard. Vor der Probe-IPA klären.
 - [ ] Welche Prometheus-URL (direkt oder Thanos/Mimir) ist vom Kargo-Cluster aus erreichbar, und mit welcher Authentifizierung?
 - [ ] §2.1 in Lab bestätigen: Broker 2.57.0 mit ArkMQ v2.1.7 deployen und `BrokerVersionAligned` beobachten.
-- [ ] Wie lange dauert ein Rolling Update aller Broker auf E1 und T1? Das bestimmt `activeDeadlineSeconds` und `initialDelay`.
+- [ ] Wie lange dauert ein Rolling Update aller Broker auf Lab und E1? Das bestimmt `activeDeadlineSeconds` und `initialDelay`.
+- [ ] Erlaubt das Team die Canary-Instanz in `appl-mqp-test` auf E1? Sonst Rückfallvariante B.
 
 ---
 

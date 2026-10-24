@@ -8,7 +8,7 @@ Was wir bisher über die Versionen der MQP-Komponenten wissen: wer sie baut, wie
 
 1. [Komponenten und wer sie baut](#1-komponenten-und-wer-sie-baut)
 2. [Build-Kette](#2-build-kette)
-3. [Von Upstream ins Artifactory](#3-von-upstream-ins-artifactory)
+3. [Von Upstream ins Artifactory](#3-von-upstream-ins-artifactory) (inkl. [Startpunkt und Abgrenzung](#34-startpunkt-der-arbeit-und-abgrenzung))
 4. [Versionsstand pro Cluster](#4-versionsstand-pro-cluster)
 5. [Abhängigkeiten zwischen den Versionen](#5-abhängigkeiten-zwischen-den-versionen)
 6. [Heutiges Ausrollen](#6-heutiges-ausrollen)
@@ -115,8 +115,40 @@ Die Presets `middleware/buildenv/renovate-presets` habe ich nicht gesehen. Falls
 - Kargo hat **keine Subscription auf GitHub-Releases**. Den Weg von Renovate für ArkMQ kann Kargo nicht gehen.
 - Darum abonniert Kargo für ArkMQ das **Operator-Image** in `middleware-docker`. Die Abfrage der Tag-Liste durch das Warehouse ist selbst die Anfrage, die Artifactory an quay.io weiterreicht. Kargo ist also der „jemand“, der anfordert. Vorher muss niemand das Image gezogen haben.
 - Dass das Remote neue Tags durchreicht, ist belegt: Renovate hat das MR von `artemis.2.53.0` auf `artemis.2.57.0` über dasselbe Remote erstellt, bevor ein Cluster 2.57.0 gezogen hatte.
-- Das ArkMQ-Manifest im Generic-Remote muss Kargo nicht abrufen. Kargo schreibt nur die URL ins Overlay, laden tut es ArgoCD. Ein `http`-Step am Anfang der Promotion ruft die URL trotzdem einmal auf. Dann ist sicher, dass es das Manifest gibt (Image-Tag = Release-Tag), bevor etwas committet wird. Danach liegt es auch schon im Cache.
+- Das ArkMQ-Manifest im Generic-Remote muss Kargo nicht abrufen. Kargo schreibt nur die URL ins Overlay, laden tut es ArgoCD.
+- **Entscheid: kein `http`-Step zur Prüfung des Manifests.** Das Warehouse hat die Versionen schon gefunden. Eine zweite Prüfung in der Promotion würde dessen Analyse wiederholen. Es bleibt eine **Annahme**: Image-Tag `x.y.z` und Release `vx.y.z` gehören zusammen, weil ArkMQ beide im selben Release-Ablauf veröffentlicht. Die Annahme wird einmal geprüft (§11) und in der Betriebsdoku festgehalten. Stimmt sie einmal nicht, scheitert der Sync in **Lab** (`kustomize build` mit 404, `argocd-wait` mit Timeout), und andere Teams sind nicht betroffen. Aufräumen: vorherige Freight auf `lab` promoten.
 - Kargo braucht dafür nur Zugriff auf Artifactory, nicht aufs Internet.
+
+### 3.4 Startpunkt der Arbeit und Abgrenzung
+
+**Die Arbeit beginnt dort, wo eine Version in `repo.pnet.ch` liegt.** Wie sie dorthin kommt (unsere Pipelines, die Remotes vor quay.io und GitHub, Renovate in den Build-Repos), ist **Ausgangslage**. Das wird in der Umfeldanalyse beschrieben, aber nicht verändert. §1 und §2 sowie §3.1 und §3.2 beschreiben diese Ausgangslage.
+
+**Startpunkt heute (Renovate) und mit Kargo:**
+
+| Komponente | Renovate heute schaut auf | Kargo würde schauen auf |
+|---|---|---|
+| Broker-Image | `repo.pnet.ch` (`middleware-docker`) | `repo.pnet.ch` (`middleware-docker`) |
+| Init-Image | `repo.pnet.ch` (`middleware-docker-local`) | `repo.pnet.ch` (`middleware-docker-local`) |
+| PF-Operator | Image: `repo.pnet.ch`; CRD: **GitLab-Tags** (`gitlab-tags`) | `repo.pnet.ch` (Image). Die CRD-Version leitet sich aus dem Image-Tag ab |
+| ArkMQ | **GitHub-API direkt** (`github-releases`) | `repo.pnet.ch` (Operator-Image in `middleware-docker`) |
+
+Renovate hat heute **drei** Startpunkte: Artifactory, GitLab und GitHub. Mit Kargo gibt es nur noch **einen**:
+
+- Die Grenze der Arbeit ist eindeutig: Artifactory.
+- Kargo braucht keinen Zugriff aufs Internet. Renovate braucht heute für ArkMQ einen Zugang zur GitHub-API, direkt oder über einen Proxy.
+- Erkannt wird nur, was intern auch wirklich verfügbar ist.
+
+Der Startpunkt der heutigen Renovate-Konfiguration wird also nicht einfach übernommen, sondern vereinheitlicht. Für die Ist-Analyse: heute drei Quellen. Für den Variantenentscheid: mit Kargo eine Quelle.
+
+**Annahmen an der Schnittstelle:** Kargo verlässt sich an der Grenze auf folgende Punkte. Sie werden nicht gelöst, sondern benannt. Sie gehören in die Risiken und in die Betriebsdoku (D03).
+
+| Annahme | Was passiert, wenn sie nicht stimmt |
+|---|---|
+| Die Remotes in Artifactory reichen neue Tags von quay.io durch | Kargo sieht keine neuen Versionen |
+| Image-Tag des ArkMQ-Operators = Release-Tag (`2.2.2` ↔ `v2.2.2`) | Sync in Lab scheitert |
+| Init-Image-Tag beginnt mit Artemis-Major.Minor | Regel Broker = Init greift nicht |
+| Das Init-Image wird nach einem Artemis-Update zeitnah gebaut (Renovate-MR) | Es entsteht keine neue Freight |
+| Image-Namen bleiben stabil (siehe Umbenennungen in §7) | Subscription findet nichts mehr |
 
 ---
 
@@ -242,7 +274,18 @@ Folgen:
 
 ## 8. Promotion mit Kargo
 
-Annahmen aus den Empfehlungen in [VARIANTENENTSCHEIDE.md](VARIANTENENTSCHEIDE.md): Freight-Variante A, T1 parallel. Testarten (K, V, S, F, O, C) aus [TESTARTEN.md](TESTARTEN.md).
+Dieser Abschnitt beschreibt das **Zielbild der IPA**. Es beruht auf den Empfehlungen in [VARIANTENENTSCHEIDE.md §3](VARIANTENENTSCHEIDE.md#3-ipa-promotion-strategie-lab--t1): Freight-Variante A mit fester Vorgabe von Major.Minor, T1 parallel, Freigabe in Kargo (Lab automatisch, E1 und T1 manuell), Git überall per Push, gleiche Promotion-Schritte für alle Stages. Die Testarten (K, V, S, F, O, C) kommen aus der Probe-IPA ([TESTARTEN.md](TESTARTEN.md)).
+
+**Was davon schon in der Probe-IPA läuft:**
+
+| | Probe-IPA (Lab → E1) | IPA (Zielbild) |
+|---|---|---|
+| Warehouse | vorläufig, vier Subscriptions, **ohne Regel** | Variante aus §3.1 der Variantenentscheide, z. B. feste Vorgabe |
+| Stages | `lab`, `e1` | `lab`, `e1`, `t1-nucleus`, `t1-pcilight` |
+| Freigabe | beide manuell | Lab automatisch, E1 manuell nach Blog-Post, T1 manuell + Wartezeit |
+| Promotion-Schritte | K, Commits per Push, ArkMQ → PF | gleich, als gemeinsame `PromotionTask` |
+| Verifikation | **bewerteter Inhalt**: V, S, C, F/O (Lab `dryRun`) | übernommen, auf T1 ohne C |
+| Rechte | Verifikations-Jobs auf Lab/E1 | dazu `promote` pro Stage, P1 ausgeschlossen |
 
 ### 8.1 Warehouse: Versionen erkennen
 
@@ -255,12 +298,81 @@ Annahmen aus den Empfehlungen in [VARIANTENENTSCHEIDE.md](VARIANTENENTSCHEIDE.md
 
 Das Broker-Tag `artemis.2.57.0` ist kein SemVer. Kargo ignoriert solche Tags bei `SemVer` (`pkg/controller/semver/parser.go`). `Lexical` sortiert falsch, sobald ein Patch zweistellig wird (2.57.10 vor 2.57.9).
 
-### 8.2 Gesamtablauf
+### 8.2 Wie aus den Versionen eine Freight wird
+
+Das Warehouse weiss von sich aus **nicht**, ob Versionen zusammenpassen. Es nimmt pro Subscription die **neueste** Version und bildet daraus einen Kandidaten. Ob daraus eine Freight wird, entscheidet nur eine Regel, die **wir** vorgeben.
+
+```
+Discovery:  neuestes ArkMQ-Image   → 2.3.0
+            neuestes PF-Image      → 0.17.5
+            neuestes Broker-Image  → artemis.2.58.0
+            neuestes Init-Image    → 2.57.202610080525
+                    │
+                    ▼
+Kandidat:   ArkMQ 2.3.0 · PF 0.17.5 · Broker 2.58.0 · Init 2.57.x
+                    │
+freightCreationCriteria: Broker 2.58 == Init 2.57 ?  → false
+                    │
+                    ▼
+            keine Freight (ältere Kombinationen probiert das Warehouse nicht)
+```
+
+Erst wenn unsere Pipeline das Init-Image `2.58.<ts>` gebaut hat, ist die Regel erfüllt, und die Freight entsteht.
+
+**Was eine Regel im Warehouse prüfen kann:** Sie sieht nur die Tags (und Digests) der gefundenen Images.
+
+| Regel | Aus den Tags ablesbar? | Wo prüfen |
+|---|---|---|
+| Broker = Init (Major.Minor) | **ja**: `artemis.2.58.0` und `2.58.202611…` | Warehouse (`freightCreationCriteria` oder feste Vorgabe) |
+| ArkMQ passt zur Broker-Version | **nein**, steht nur in `version.go` von ArkMQ | Matrix als ConfigMap + `fail`-Step in der Promotion, oder feste Vorgabe (siehe unten) |
+| PF-Operator passt zu ArkMQ | **nein**, nirgends maschinenlesbar | Verifikation in Lab (Tests S und O) |
+
+**Variante 1: Ausdruck in `freightCreationCriteria`** (Skizze, in Lab testen)
+
+```yaml
+freightCreationCriteria:
+  expression: |
+    let b = split(trimPrefix(imageFrom('middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes').Tag, 'artemis.'), '.');
+    let i = split(imageFrom('middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image').Tag, '.');
+    b[0] == i[0] && b[1] == i[1]
+```
+
+Verglichen werden die ersten zwei Teile, wie im PF-Operator (`artemismq.go:49-55`). `let`, `split` und `trimPrefix` sind Funktionen von expr-lang. Ob sie in `freightCreationCriteria` verfügbar sind, sagt die Kargo-Doku nicht ausdrücklich.
+
+Nachteil: Weil das Warehouse nur die neueste Kombination prüft, **blockiert eine Komponente alle anderen**. Ist der Broker schon auf 2.58, das Init-Image aber noch nicht gebaut, entsteht auch für einen dringenden Fix am PF-Operator keine Freight.
+
+**Variante 2: Major.Minor in den Subscriptions fest vorgeben**
+
+| Subscription | Vorgabe |
+|---|---|
+| Broker | `allowTags: ^artemis\.2\.57\.\d+$` |
+| Init | `semverConstraint: ~2.57` |
+| ArkMQ | `semverConstraint: ~2.2` |
+
+Das Warehouse sieht 2.58 dann gar nicht. Ein Minor-Upgrade von Artemis ist eine bewusste Änderung am Warehouse: alle drei Vorgaben gemeinsam anpassen. Das deckt auch die Regel ArkMQ ↔ Broker ab, ganz ohne Matrix. Patch-Versionen, neue Init-Builds und Releases des PF-Operators laufen weiter automatisch.
+
+Variante 2 passt gut zu MQP: Minor-Upgrades von Artemis sind selten, kommen mit einem ArkMQ-Release und sind ohnehin ein bewusster Entscheid (Blog-Post). Empfehlung für die IPA, siehe [VARIANTENENTSCHEIDE.md §3.1](VARIANTENENTSCHEIDE.md#31-freight-modell-bewerteter-variantenentscheid-1). In der Probe-IPA hat das Warehouse noch keine Regel; dort fängt der `fail`-Step (K) ungültige Kombinationen vor dem Commit ab.
+
+**Was trotzdem durchrutscht, und wer es merkt:** ArgoCD bewertet nur die Health der **Operator-Deployments**. Die Instanzen (`PFActiveMQ`, `ActiveMQArtemis`) liegen in anderen Apps und Namespaces.
+
+| Was passt nicht | Was im Cluster passiert | ArgoCD-App der Operatoren | Wer merkt es |
+|---|---|---|---|
+| Broker ≠ Init (Major.Minor) | PF-Operator `os.Exit(1)` beim Reconcile → CrashLoop | **Degraded** | ArgoCD. Kargo wartet auf Healthy, die Promotion scheitert |
+| ArkMQ ↔ Broker-Version | Operatoren laufen. Alle Instanzen `BrokerVersionAligned=False` → `Ready=False` | **Healthy** | nur die Verifikation (Test S) |
+| PF ↔ ArkMQ-API | Operatoren laufen. Dauerhaft `Mismatch`, Requeue alle 5 s | **Healthy** | nur die Verifikation (Tests S und O) |
+
+Der erste Fall braucht mindestens eine Instanz im Cluster, die reconciled wird. In Lab ist das die e2e-Instanz.
+
+Ohne eigene Verifikation zählt für Kargo nur die ArgoCD-Health. In zwei von drei Fällen würde eine kaputte Kombination in Lab als verifiziert gelten und nach E1 weiterlaufen.
+
+**Kurz:** Das Warehouse nimmt die neuesten Versionen. Kriterium oder feste Vorgabe filtern die offensichtlich falschen heraus. Was dann noch falsch ist, bleibt in Lab an der Verifikation hängen, nicht an ArgoCD.
+
+### 8.3 Gesamtablauf
 
 ```mermaid
 flowchart TD
   subgraph WH["Warehouse mqp-platform"]
-    s1["ArkMQ-Image"] & s2["PF-Image"] & s3["Broker-Image"] & s4["Init-Image"] --> crit{"freightCreationCriteria<br/>Broker = Init (Major.Minor)?"}
+    s1["ArkMQ-Image"] & s2["PF-Image"] & s3["Broker-Image"] & s4["Init-Image"] --> crit{"Regel im Warehouse<br/>feste Vorgabe Major.Minor<br/>(oder freightCreationCriteria)"}
     crit -- nein --> nofreight["keine Freight"]
     crit -- ja --> freight["Freight<br/>ArkMQ + PF + Broker + Init"]
   end
@@ -271,14 +383,14 @@ flowchart TD
     lab["Promotion (auto)"] --> labv{"Verifikation<br/>V · S · C · F/O dryRun"}
   end
 
-  labv -- grün --> e1
   labv -- rot --> stop1["Freight blockiert"]
 
   subgraph E1["Stage e1 · e1-k8s-pfnet-a · argocd-itd"]
-    e1["Promotion (auto gestartet)<br/>öffnet MRs"] --> blog["Blog-Post,<br/>MRs mergen = Freigabe"]
-    blog --> e1v{"Verifikation<br/>V · S · C · F · O"}
+    blog{{"Blog-Post, dann manuelle Freigabe<br/>nur Rolle mit promote auf e1"}} --> e1["Promotion"]
+    e1 --> e1v{"Verifikation<br/>V · S · C · F · O"}
   end
 
+  labv -- grün --> blog
   e1v -- rot --> stop2["Freight blockiert"]
   e1v -- grün --> soak["requiredSoakTime auf e1<br/>Betrieb 336h · Demo kurz"]
   soak --> gate{{"manuelle Freigabe<br/>nur Rolle mit promote auf t1-*"}}
@@ -293,7 +405,7 @@ flowchart TD
   t1nv & t1pv --> p1c["P1: nur Konzept<br/>availabilityStrategy: All<br/>keine Stage, keine Rechte"]
 ```
 
-### 8.3 Ablauf einer Promotion in einer Stage
+### 8.4 Ablauf einer Promotion in einer Stage
 
 ```mermaid
 sequenceDiagram
@@ -307,13 +419,12 @@ sequenceDiagram
   participant R as Argo Rollouts (Verifikation)
 
   K->>K: fail-Step: Kombination laut Matrix (ConfigMap) erlaubt?
-  K->>AF: http-Step: ArkMQ-Manifest v‹Tag› vorhanden?
   K->>G1: git-clone, yaml-update ArkMQ-URL v‹Tag›
   K->>G2: git-clone, Image + CRD-URL + Broker/Init-Argumente
-  K->>G1: git-commit, git-push (E1: git-open-pr + git-wait-for-pr)
-  K->>G2: git-commit, git-push (E1: git-open-pr + git-wait-for-pr)
+  K->>G1: git-commit, git-push
+  K->>G2: git-commit, git-push
   K->>A: argocd-update ArkMQ-App
-  A->>AF: Manifest laden (aus dem Cache)
+  A->>AF: ArkMQ-Manifest v‹Tag› laden (beim ersten Mal von GitHub)
   A->>C: Sync ArkMQ-Operator + CRDs
   K->>A: argocd-wait ArkMQ-App Healthy
   K->>A: argocd-update PF-App
@@ -327,7 +438,7 @@ sequenceDiagram
   R-->>K: Successful → Freight in Stage verifiziert
 ```
 
-### 8.4 Was jede Stage macht
+### 8.5 Was jede Stage macht
 
 | | **lab** | **e1** | **t1-nucleus / t1-pcilight** | P1 (nur Konzept) |
 |---|---|---|---|---|
@@ -336,29 +447,30 @@ sequenceDiagram
 | Wer ist betroffen | nur MQP | Entwicklerteams | Testteams | Produktion |
 | Zweck | technischer Smoke-Test: Lässt sich die Kombination überhaupt installieren? | erster Einsatz mit echten Instanzen anderer Teams | Generalprobe für P1, gleiche Topologie (nucleus + pcilight) | – |
 | Freight von | Warehouse (`direct`) | Stage `lab` | Stage `e1` | beide T1-Stages, `availabilityStrategy: All` |
-| Start | automatisch | automatisch, `MatchUpstream` | **manuell**, nur Rolle mit `promote` auf `t1-*` | per MR ausserhalb von Kargo |
+| Start | automatisch | **manuell** nach Blog-Post, nur Rolle mit `promote` auf `e1` | **manuell**, nur Rolle mit `promote` auf `t1-*` | per MR ausserhalb von Kargo |
 | Wartezeit davor | – | – | `requiredSoakTime` auf e1: 336h (Demo: kurz) | 336h auf T1 |
-| Git | `git-push` direkt | `git-open-pr` + `git-wait-for-pr`: Merge nach Blog-Post ist die Freigabe | `git-push` direkt (Freigabe war die Promotion) | – |
+| Git | `git-push` direkt | `git-push` direkt | `git-push` direkt | MR (Vier-Augen-Prinzip, Change) |
 | Reihenfolge Sync | ArkMQ → warten → PF | gleich | gleich, beide T1 gleichzeitig | – |
 | Verifikation | V, S, C; F und O nur `dryRun` | V, S, C, F, O | V, S, F, O (keine Canary) | – |
 | Bei Fehler | Freight bleibt in Lab, andere Teams merken nichts | Freight blockiert; Rollback = vorherige Freight promoten | Freight blockiert; Rollback = vorherige Freight promoten | – |
 | Vorher informieren | – | Blog-Post | Testteams (Zeitfenster) | Change-Prozess |
 
-Hinweis zu E1: Mit `git-open-pr` startet die Promotion automatisch, wartet aber auf den Merge. Damit bekommt der Blog-Post einen festen Platz, und die MRs zeigen wie heute im SPOC-Board, was ausgerollt wird. Weicht von „Lab → E1 automatisch“ im README ab. Das ist eine Variante für den Entscheid zur Promotion-Strategie.
+Die Freigabe liegt in jeder Stage in Kargo, Git läuft überall per Push. Alle Stages rufen dieselbe `PromotionTask` auf; strenger werden nur die Tore davor (Freigabe, Wartezeit) und die Verifikation danach. Ein MR (`git-open-pr` + `git-wait-for-pr`) ist erst für P1 vorgesehen, wo ein Vier-Augen-Prinzip nötig ist. In der Probe-IPA sind `lab` und `e1` noch beide manuell.
 
 ---
 
 ## 9. Eine komplette Promotion von Anfang bis Ende
 
-Beispiel: ArkMQ veröffentlicht **v2.3.0** mit **Artemis 2.58.0**. PF-Operator bleibt auf 0.17.5.
+Zielbild der IPA. Beispiel: ArkMQ veröffentlicht **v2.3.0** mit **Artemis 2.58.0**. PF-Operator bleibt auf 0.17.5. Das Beispiel nutzt die empfohlene Variante 2 aus [§8.2](#82-wie-aus-den-versionen-eine-freight-wird) (feste Vorgabe von Major.Minor). Mit Variante 1 (Ausdruck in `freightCreationCriteria`) entsteht die Freight automatisch, sobald das Init-Image 2.58 gebaut ist. Ab dann läuft alles gleich.
 
 | Tag | Was passiert | Wer | Kargo-Sicht |
 |---|---|---|---|
-| 0 | ArkMQ veröffentlicht v2.3.0, auf quay.io erscheinen `activemq-artemis-operator:2.3.0`, `arkmq-org-broker-kubernetes:artemis.2.58.0`, `arkmq-org-broker-init:artemis.2.58.0` | Upstream | Warehouse sieht neue Tags über `middleware-docker`. Broker 2.58 ≠ Init 2.57 → **keine Freight** |
-| 0–1 | Renovate in `artemis-custom-init-image`: `ARTEMIS_IMAGE_VERSION` 2.58.0 → MR → Review → Merge → `main` baut `2.58.<ts>` | Renovate, MQP | Warehouse sieht Init 2.58 → Kriterium erfüllt → **Freight** „ArkMQ 2.3.0 · PF 0.17.5 · Broker 2.58.0 · Init 2.58.<ts>“ |
-| 1 | Stage `lab`: Matrix-Prüfung (v2.3.0 → 2.58.0 ✓), Manifest-URL prüfen, Commits, Sync ArkMQ → PF, alle Lab-Broker rollen neu aus | Kargo | Verifikation V, S, C (≈ 30–60 min, in Lab messen) |
-| 1 | Verifikation grün | Kargo | Freight in `lab` verifiziert → Stage `e1` startet, öffnet 2 MRs |
-| 2 | Blog-Post veröffentlicht, MQP-Team mergt die MRs | MQP | Sync auf E1, Verifikation V, S, C, F, O |
+| 0 | ArkMQ veröffentlicht v2.3.0, auf quay.io erscheinen `activemq-artemis-operator:2.3.0`, `arkmq-org-broker-kubernetes:artemis.2.58.0`, `arkmq-org-broker-init:artemis.2.58.0` | Upstream | Warehouse ignoriert sie wegen der Vorgabe `~2.2` / `2.57`. Patches innerhalb 2.57 liefen weiter automatisch |
+| 0–1 | Renovate in `artemis-custom-init-image`: `ARTEMIS_IMAGE_VERSION` 2.58.0 → MR → Review → Merge → `main` baut `2.58.<ts>` | Renovate, MQP | Warehouse ignoriert auch dieses Image (Vorgabe `~2.57`) |
+| 1 | MQP entscheidet das Minor-Upgrade und passt die drei Vorgaben im Warehouse an (ArkMQ `~2.3`, Broker `2.58`, Init `~2.58`) | MQP | **Freight** „ArkMQ 2.3.0 · PF 0.17.5 · Broker 2.58.0 · Init 2.58.<ts>“ |
+| 1 | Stage `lab` (automatisch): K (v2.3.0 → 2.58.0 ✓), Commits, Sync ArkMQ → PF, alle Lab-Broker rollen neu aus | Kargo | Verifikation V, S, C (≈ 30–60 min, in Lab messen) |
+| 1 | Verifikation grün | Kargo | Freight in `lab` verifiziert → auf `e1` verfügbar |
+| 2 | Blog-Post veröffentlicht, berechtigte Person promotet auf `e1` | MQP | Sync auf E1, Verifikation V, S, C, F, O |
 | 2 | Verifikation grün | Kargo | Freight in `e1` verifiziert, Wartezeit startet |
 | 2–16 | Zwei Wochen Betrieb auf E1. `artemis-monitor` läuft weiter als Dauer-Canary | – | T1-Stages zeigen die Freight als „noch nicht verfügbar“ |
 | 16 | Absprache mit Testteams; berechtigte Person promotet auf beide T1 | MQP | Beide T1 parallel, Verifikation V, S, F, O |
@@ -369,9 +481,9 @@ Beispiel: ArkMQ veröffentlicht **v2.3.0** mit **Artemis 2.58.0**. PF-Operator b
 
 | Fehler | Wo er auffällt | Was passiert |
 |---|---|---|
-| Init-Image wird nicht neu gebaut | Warehouse | Es entsteht keine Freight. Nichts wird ausgerollt |
+| Init-Image wird nicht neu gebaut | Warehouse | Es findet kein Init 2.58, es entsteht keine Freight. Nichts wird ausgerollt |
 | ArkMQ v2.3.0 kennt 2.58.0 nicht (Matrix falsch) | `fail`-Step in Lab | Promotion bricht ab, bevor committet wird |
-| Image-Tag `2.3.0`, aber Release heisst anders | `http`-Step in Lab | Promotion bricht ab, bevor committet wird |
+| Image-Tag `2.3.0`, aber Release heisst anders | Sync in Lab (`kustomize build` 404, `argocd-wait` Timeout) | Promotion schlägt fehl, Commit bleibt im Repo; vorherige Freight auf `lab` promoten |
 | ArkMQ bringt neue Defaults, PF meldet dauernd `Mismatch` | S und O in Lab | Freight blockiert, Lab bleibt auf neuem Stand, Fix im PF-Operator nötig |
 | Broker läuft, verarbeitet aber nichts | F auf E1 | Freight blockiert, Rollback auf E1 = vorherige Freight promoten |
 | Neue Instanzen lassen sich nicht mehr anlegen | C in Lab oder E1 | Freight blockiert |
@@ -395,14 +507,16 @@ Beispiel: ArkMQ veröffentlicht **v2.3.0** mit **Artemis 2.58.0**. PF-Operator b
 
 ## 11. Vorbereitung vor der Probe-IPA
 
+- [ ] Vorläufiges Warehouse (vier Subscriptions, ohne Regel) und Stages `lab`/`e1` (beide manuell, Push) mit einfacher Promotion aufbauen. Bewusst vorläufig, wird in der IPA evaluiert.
 - [ ] Image-Argumente aus dem Inline-Patch (`patch: |-`) in eine eigene Datei verschieben. `yaml-update` kann nicht in einen Text-Block schreiben.
 - [ ] Lab-d klären: Staging-Image und CRD von `main` oder Release-Stand für die Kargo-Stage?
-- [ ] Renovate: Overlays der kube-Repos in `ignorePaths`; Regex für den Broker auf den neuen Namen umstellen (für P1, das ausserhalb von Kargo bleibt); `depName` für ArkMQ auf `arkmq-org/arkmq-org-broker-operator`.
+- [ ] Renovate: Overlays von Lab und E1 in `ignorePaths` (T1 erst zur IPA); Regex für den Broker auf den neuen Namen umstellen; `depName` für ArkMQ auf `arkmq-org/arkmq-org-broker-operator`.
+- [ ] `artemis-monitor` auf E1 korrigieren (`ssl-0` doppelt statt `ssl-0` und `ssl-1`).
 - [ ] Prüfen, ob Image-Tag und Release-Tag bei ArkMQ immer übereinstimmen (`2.2.2` ↔ `v2.2.2`).
 - [ ] In Artifactory prüfen, ob `middleware-docker` für `arkmq-org/activemq-artemis-operator` auch Tags zeigt, die noch nie gezogen wurden.
 - [ ] Matrix ArkMQ → Artemis als ConfigMap anlegen (aus `version/version.go`).
 - [ ] Regel „Broker = neueste Version in der ArkMQ-Liste“ in Lab bestätigen.
-- [ ] Rechte der Verifikations-Jobs auf Lab, E1, T1 klären; Argo-Rollouts-Controller im Kargo-Cluster prüfen.
+- [ ] Rechte der Verifikations-Jobs auf Lab und E1 klären; Argo-Rollouts-Controller im Kargo-Cluster prüfen.
 - [ ] Ist `argocd-lab` an Kargo angebunden (Shard)?
 - [ ] GitLab-History von `kube-artemis-operator/envs/*` für die Ist-Analyse auswerten (wann welche Version auf welchem Cluster).
 
