@@ -1,0 +1,161 @@
+nazarieli@w8xhb2 ~ % kubectl get pfactivemq -A --no-headers | wc -l
+
+       8
+nazarieli@w8xhb2 ~ % kubectl get pfactivemq -n kube-pf-activemq -o custom-columns='NAME:.metadata.name,ZIEL:.spec.instance.namespace,REPL:.spec.instance.replicas,READY:.status.conditions[?(@.type=="Ready")].status,READY_GRUND:.status.conditions[?(@.type=="Ready")].reason,BROKERS:.status.conditions[?(@.type=="ActiveMQBrokersReady")].status,GRUND:.status.conditions[?(@.type=="ActiveMQBrokersReady")].reason'
+NAME                           ZIEL                   REPL   READY   READY_GRUND   BROKERS   GRUND
+e1-mqp-e2e-a                   appl-mqp-e2e-e1        2      True    Ready         True      Ready
+e1-mqp-esbpf-lab-a             appl-mqp-esbpf-e1      2      True    Ready         True      Ready
+e1-mqp-selmaniarbe-a           appl-selmaniarbe-e1    2      False   Ready         False     Mismatch
+e1-mqp-selmaniarbe-bridges-a   appl-selmaniarbe-e1    2      True    Ready         True      Ready
+e1-mqp-selmaniarbe2-a          appl-selmaniarbe2-e1   2      False   Ready         False     Mismatch
+e1-mqp-tech-lab-a              appl-mqp-esbpf-e1      2      True    Ready         True      Ready
+e1-mqp-test-a                  appl-mqp-test-e1       2      True    Ready         True      Ready
+e1-mqp-werrenpasc-a            appl-werrenpasc-e1     2      True    Ready         True      Ready
+nazarieli@w8xhb2 ~ % kubectl get pfactivemq -A -o custom-columns=NS:.metadata.namespace --no-headers | sort -u
+
+kube-pf-activemq
+nazarieli@w8xhb2 ~ % kubectl get pfactivemq kube-pf-activemq -n kube-pf-activemq -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\t"}{.reason}{"\t"}{.lastTransitionTime}{"\t"}{.message}{"\n"}{end}'
+Error from server (NotFound): pfactivemqs.pf-activemq-operator.pnet.ch "kube-pf-activemq" not found
+nazarieli@w8xhb2 ~ % kubectl get pfactivemq -n kube-pf-activemq
+NAME                           READY   AGE
+e1-mqp-e2e-a                   True    35d
+e1-mqp-esbpf-lab-a             True    35d
+e1-mqp-selmaniarbe-a           False   35d
+e1-mqp-selmaniarbe-bridges-a   True    17d
+e1-mqp-selmaniarbe2-a          False   11d
+e1-mqp-tech-lab-a              True    10d
+e1-mqp-test-a                  True    35d
+e1-mqp-werrenpasc-a            True    35d
+nazarieli@w8xhb2 ~ % kubectl get pfactivemq e1-mqp-e2e-a -n kube-pf-activemq -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\t"}{.reason}{"\t"}{.lastTransitionTime}{"\t"}{.message}{"\n"}{end}'
+Ready	True	Ready	2026-10-21T08:26:51Z	All resources are created and ready
+CertResourcesReady	True	Ready	2026-09-21T07:11:19Z	Resource "e1-mqp-e2e-a-ssl-cert" of kind "Certificate" exists.
+CertSecretResourcesReady	True	Ready	2026-09-21T07:11:19Z	Resource "e1-mqp-e2e-a-mapping-ssl-cert" of kind "Secret" exists.
+LoggingConfigReady	True	Ready	2026-09-21T07:11:19Z	Resource "e1-mqp-e2e-a-logging-config" of kind "ConfigMap" exists.
+AuthSecretReady	True	Ready	2026-09-21T07:11:19Z	Resource "e1-mqp-e2e-a-jaas-config" of kind "Secret" exists.
+ActiveMQBrokersReady	True	Ready	2026-10-21T08:26:51Z	Resource "e1-mqp-e2e-a" of kind "ActiveMQArtemis" is ready.
+StorageReady	True	Ready	2026-09-21T07:00:23Z	Storage successfully resized to 4Gi
+nazarieli@w8xhb2 ~ % kubectl get pfactivemq -A -o custom-columns=NAME:.metadata.name,REPL:.spec.instance.replicas --no-headers | awk '$2==0'
+
+nazarieli@w8xhb2 ~ % kubectl get activemqartemis -A -o custom-columns='NS:.metadata.namespace,NAME:.metadata.name,READY:.status.conditions[?(@.type=="Ready")].status,VALID:.status.conditions[?(@.type=="Valid")].status,ALIGNED:.status.conditions[?(@.type=="BrokerVersionAligned")].status,PROPS:.status.conditions[?(@.type=="BrokerPropertiesApplied")].status,BROKER:.status.version.brokerVersion,IMAGE:.status.version.image,INIT:.status.version.initImage'
+NS                     NAME                           READY   VALID   ALIGNED   PROPS   BROKER   IMAGE                                                                                 INIT
+appl-mqp-e2e-e1        e1-mqp-e2e-a                   True    True    True      True    2.57.0   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+appl-mqp-esbpf-e1      e1-mqp-esbpf-lab-a             True    True    True      True    2.57.0   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+appl-mqp-esbpf-e1      e1-mqp-tech-lab-a              True    True    True      True    2.57.0   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+appl-mqp-test-e1       e1-mqp-test-a                  True    True    True      True    2.57.0   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+appl-selmaniarbe-e1    e1-mqp-selmaniarbe-a           True    True    True      True    2.57.0   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+appl-selmaniarbe-e1    e1-mqp-selmaniarbe-bridges-a   True    True    True      True    2.57.0   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+appl-selmaniarbe2-e1   e1-mqp-selmaniarbe2-a          True    True    True      True    2.57.0   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+appl-werrenpasc-e1     e1-mqp-werrenpasc-a            True    True    True      True    2.57.0   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525
+nazarieli@w8xhb2 ~ % kubectl get pfactivemq e1-mqp-e2e-a -n kube-pf-activemq -o yaml | grep -A6 conditions
+
+  conditions:
+  - lastTransitionTime: "2026-10-21T08:26:51Z"
+    message: All resources are created and ready
+    reason: Ready
+    status: "True"
+    type: Ready
+  - lastTransitionTime: "2026-09-21T07:11:19Z"
+nazarieli@w8xhb2 ~ % kubectl get deploy -n kube-pf-activemq -o custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image
+zsh: no matches found: custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image
+nazarieli@w8xhb2 ~ % kubectl get deploy -n kube-pf-activemq -o 'custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image'
+NAME                   IMAGE
+pf-activemq-operator   middleware-docker-staging-local.repo.pnet.ch/pf/middleware/pf-activemq-operator:0.17.5
+nazarieli@w8xhb2 ~ % kubectl get deploy -n kube-artemis-activemq -o 'custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image'
+NAME                                  IMAGE
+activemq-artemis-controller-manager   middleware-docker.repo.pnet.ch/arkmq-org/activemq-artemis-operator:2.2.2
+nazarieli@w8xhb2 ~ % kubectl get deploy pf-activemq-operator -n kube-pf-activemq -o jsonpath='{.spec.template.spec.containers[0].args}' | tr ',' '\n'
+["--metrics-bind-address=:8080"
+"--artemis-image=middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0"
+"--artemis-init-image=middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525"
+"-log-level=debug"]%                                                                                                                                                                                                  nazarieli@w8xhb2 ~ % kubectl get pods -A -l ActiveMQArtemis -o 'custom-columns=NS:.metadata.namespace,POD:.metadata.name,INIT:.spec.initContainers[*].image,IMG:.spec.containers[*].image'
+NS                     POD                                 INIT                                                                                             IMG
+appl-mqp-e2e-e1        e1-mqp-e2e-a-ss-0                   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-mqp-e2e-e1        e1-mqp-e2e-a-ss-1                   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-mqp-esbpf-e1      e1-mqp-esbpf-lab-a-ss-0             middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-mqp-esbpf-e1      e1-mqp-esbpf-lab-a-ss-1             middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-mqp-esbpf-e1      e1-mqp-tech-lab-a-ss-0              middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-mqp-esbpf-e1      e1-mqp-tech-lab-a-ss-1              middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-mqp-test-e1       e1-mqp-test-a-ss-0                  middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-mqp-test-e1       e1-mqp-test-a-ss-1                  middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-selmaniarbe-e1    e1-mqp-selmaniarbe-a-ss-0           middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-selmaniarbe-e1    e1-mqp-selmaniarbe-a-ss-1           middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-selmaniarbe-e1    e1-mqp-selmaniarbe-bridges-a-ss-0   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-selmaniarbe-e1    e1-mqp-selmaniarbe-bridges-a-ss-1   middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-selmaniarbe2-e1   e1-mqp-selmaniarbe2-a-ss-0          middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-selmaniarbe2-e1   e1-mqp-selmaniarbe2-a-ss-1          middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-werrenpasc-e1     e1-mqp-werrenpasc-a-ss-0            middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+appl-werrenpasc-e1     e1-mqp-werrenpasc-a-ss-1            middleware-docker-local.repo.pnet.ch/pf/middleware/artemis-custom-init-image:2.57.202610080525   middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes:artemis.2.57.0
+nazarieli@w8xhb2 ~ % kubectl get deploy -n kube-artemis-activemq -o yaml | grep -A1 RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes | tail -6
+nazarieli@w8xhb2 ~ % kubectl get crd pfactivemqs.pf-activemq-operator.pnet.ch activemqartemises.broker.amq.io -o 'custom-columns=NAME:.metadata.name,VERS:.spec.versions[*].name,CREATED:.metadata.creationTimestamp'
+NAME                                       VERS                                                   CREATED
+pfactivemqs.pf-activemq-operator.pnet.ch   v1alpha1                                               2026-09-21T06:57:04Z
+activemqartemises.broker.amq.io            v1beta1,v2alpha1,v2alpha2,v2alpha3,v2alpha4,v2alpha5   2026-09-21T06:53:33Z
+nazarieli@w8xhb2 ~ % kubectl get pods -n kube-pf-activemq -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.containerStatuses[*].imageID}{"\n"}{end}'
+
+pf-activemq-operator-85d6984f85-t4m5h	middleware-docker-staging-local.repo.pnet.ch/pf/middleware/pf-activemq-operator@sha256:1063958cdb4cf9d67ad574916adf987ba986245aaab7decb2f188ac789b0cd31
+nazarieli@w8xhb2 ~ % kubectl get pods -A -l ActiveMQArtemis -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.containerStatuses[*].imageID}{"\n"}{end}'
+e1-mqp-e2e-a-ss-0	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-e2e-a-ss-1	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-esbpf-lab-a-ss-0	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-esbpf-lab-a-ss-1	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-tech-lab-a-ss-0	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-tech-lab-a-ss-1	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-test-a-ss-0	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-test-a-ss-1	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-selmaniarbe-a-ss-0	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-selmaniarbe-a-ss-1	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-selmaniarbe-bridges-a-ss-0	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-selmaniarbe-bridges-a-ss-1	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-selmaniarbe2-a-ss-0	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-selmaniarbe2-a-ss-1	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-werrenpasc-a-ss-0	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+e1-mqp-werrenpasc-a-ss-1	middleware-docker.repo.pnet.ch/arkmq-org/arkmq-org-broker-kubernetes@sha256:e42956655870701a804110f26f87dc0670a26296579ca3b10c6e76869b645f39
+nazarieli@w8xhb2 ~ % kubectl get pods -A -l ActiveMQArtemis --no-headers | wc -l
+
+      16
+nazarieli@w8xhb2 ~ % kubectl get sts e1-mqp-e2e-a-ss -n appl-mqp-e2e-e1 -o jsonpath='{.spec.template.spec.containers[0].readinessProbe}'
+{"exec":{"command":["/bin/bash","-c","/opt/amq/bin/readinessProbe.sh 1"]},"failureThreshold":10,"periodSeconds":10,"successThreshold":1,"timeoutSeconds":1}%                                                          nazarieli@w8xhb2 ~ % kubectl get pdb -A | grep -iE 'mqp|artemis|activemq'
+appl-mqp-e2e-e1           e1-mqp-e2e-a-pdb                              1               N/A               1                     35d
+appl-mqp-esbpf-e1         e1-mqp-esbpf-lab-a-pdb                        1               N/A               1                     35d
+appl-mqp-esbpf-e1         e1-mqp-tech-lab-a-pdb                         1               N/A               1                     10d
+appl-mqp-test-e1          e1-mqp-test-a-pdb                             1               N/A               1                     10d
+appl-selmaniarbe-e1       e1-mqp-selmaniarbe-a-pdb                      1               N/A               1                     35d
+appl-selmaniarbe-e1       e1-mqp-selmaniarbe-bridges-a-pdb              1               N/A               1                     17d
+appl-selmaniarbe2-e1      e1-mqp-selmaniarbe2-a-pdb                     1               N/A               1                     11d
+appl-werrenpasc-e1        e1-mqp-werrenpasc-a-pdb                       1               N/A               1                     35d
+nazarieli@w8xhb2 ~ % kubectl get sts -A -l ActiveMQArtemis -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STRAT:.spec.updateStrategy.type,REPL:.spec.replicas,READY:.status.readyReplicas,UPDATED:.status.updatedReplicas,CUR:.status.currentRevision,UPD:.status.updateRevision
+NS                     NAME                              STRAT           REPL   READY   UPDATED   CUR                                          UPD
+appl-mqp-e2e-e1        e1-mqp-e2e-a-ss                   RollingUpdate   2      2       2         e1-mqp-e2e-a-ss-65d9594c4f                   e1-mqp-e2e-a-ss-65d9594c4f
+appl-mqp-esbpf-e1      e1-mqp-esbpf-lab-a-ss             RollingUpdate   2      2       2         e1-mqp-esbpf-lab-a-ss-7b7b98989b             e1-mqp-esbpf-lab-a-ss-7b7b98989b
+appl-mqp-esbpf-e1      e1-mqp-tech-lab-a-ss              RollingUpdate   2      2       2         e1-mqp-tech-lab-a-ss-7cc9f4fb5b              e1-mqp-tech-lab-a-ss-7cc9f4fb5b
+appl-mqp-test-e1       e1-mqp-test-a-ss                  RollingUpdate   2      2       2         e1-mqp-test-a-ss-f5f9c6fd8                   e1-mqp-test-a-ss-f5f9c6fd8
+appl-selmaniarbe-e1    e1-mqp-selmaniarbe-a-ss           RollingUpdate   2      2       2         e1-mqp-selmaniarbe-a-ss-9756545              e1-mqp-selmaniarbe-a-ss-9756545
+appl-selmaniarbe-e1    e1-mqp-selmaniarbe-bridges-a-ss   RollingUpdate   2      2       2         e1-mqp-selmaniarbe-bridges-a-ss-5945767864   e1-mqp-selmaniarbe-bridges-a-ss-5945767864
+appl-selmaniarbe2-e1   e1-mqp-selmaniarbe2-a-ss          RollingUpdate   2      2       2         e1-mqp-selmaniarbe2-a-ss-8c8fff78            e1-mqp-selmaniarbe2-a-ss-8c8fff78
+appl-werrenpasc-e1     e1-mqp-werrenpasc-a-ss            RollingUpdate   2      2       2         e1-mqp-werrenpasc-a-ss-7cfc446c4f            e1-mqp-werrenpasc-a-ss-7cfc446c4f
+nazarieli@w8xhb2 ~ % kubectl get pods -n kube-pf-activemq
+kubectl get pods -n kube-artemis-activemq
+NAME                                    READY   STATUS    RESTARTS   AGE
+pf-activemq-operator-85d6984f85-t4m5h   1/1     Running   0          17d
+NAME                                                  READY   STATUS    RESTARTS        AGE
+activemq-artemis-controller-manager-6b9bfb98d-b2tnj   1/1     Running   2 (2d13h ago)   10d
+nazarieli@w8xhb2 ~ % kubectl logs deploy/pf-activemq-operator -n kube-pf-activemq --since=24h | grep -ic condition
+
+0
+nazarieli@w8xhb2 ~ % kubectl logs deploy/pf-activemq-operator -n kube-pf-activemq --since=24h | grep -i mismatch | head -20
+nazarieli@w8xhb2 ~ % kubectl get deploy -n kube-artemis-activemq
+
+NAME                                  READY   UP-TO-DATE   AVAILABLE   AGE
+activemq-artemis-controller-manager   1/1     1            1           35d
+nazarieli@w8xhb2 ~ % kubectl logs deploy/activemq-artemis-controller-manager -n kube-artemis-activemq --since=24h | grep -iE 'error|mismatch' | head -30
+nazarieli@w8xhb2 ~ % kubectl get pods -n appl-mqp-e2e-<env> -l app=artemis-monitor -o wide
+
+zsh: no such file or directory: env
+nazarieli@w8xhb2 ~ % kubectl get pods -n appl-mqp-e2e-e1 -l app=artemis-monitor -o wide
+
+NAME                               READY   STATUS    RESTARTS   AGE    IP             NODE                              NOMINATED NODE   READINESS GATES
+artemis-monitor-7c89dcd99c-xn4p5   1/1     Running   0          4d4h   10.127.65.20   e1-k8spfnetlabd-aasu103.pnet.ch   <none>           <none>
+nazarieli@w8xhb2 ~ % kubectl get deploy artemis-monitor -n appl-mqp-e2e-e1 -o jsonpath='{..env[?(@.name=="SPRING_ARTEMIS_BROKER_URL")].value}'
+
+(tcp://e1-mqp-e2e-a-ssl-0.appl-mqp-e2e-e1.e1-pfnet-lab-d.pnet.ch:7002,tcp://e1-mqp-e2e-a-ssl-1.appl-mqp-e2e-e1.e1-pfnet-lab-d.pnet.ch:7002)?sslEnabled=true&trustStoreType=JKS&trustStorePath=/etc/pki-all/truststore.jks&keyStorePath=/etc/certs/node_keystore_nocrypt.pem&keyStoreType=PEM&useTopologyForLoadBalancing=false%                                                                                                             nazarieli@w8xhb2 ~ % kubectl get deploy artemis-monitor -n appl-mqp-e2e-e1 -o jsonpath='{..env[?(@.name=="LOGGING_LEVEL_CH_POSTFINANCE_ACTIVEMQ")].value}'
+Debug%
