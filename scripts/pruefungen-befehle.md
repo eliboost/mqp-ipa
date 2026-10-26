@@ -1,6 +1,6 @@
 # Prüfungen vor der Probe-IPA: kubectl-Befehle (nur lesen)
 
-Alle Befehle aus [Anhang C](../DETAILBESCHRIEB-VORLAGE.md#anhang-c-prüfungen-vor-der-probe-ipa), die mit `kubectl` gehen und **nichts im Cluster verändern** (kein `delete`, `restart`, `run`, `apply`, `edit`). Die IDs (P-xx) entsprechen Anhang C. Alle auf einmal ausführen und als Beleg speichern: [`pruefungen-lesen.sh`](pruefungen-lesen.sh).
+Alle Befehle aus [Anhang C](../DETAILBESCHRIEB-VORLAGE.md#anhang-c-prüfungen-vor-der-probe-ipa), die mit `kubectl` gehen und **nichts im Cluster verändern** (kein `delete`, `restart`, `run`, `apply`, `edit`). Die IDs (P-xx) entsprechen Anhang C. Die Argumente mit `[*]` stehen in Anführungszeichen, sonst bricht zsh mit „no matches found“ ab.
 
 Platzhalter in `<...>` durch die Namen aus dem jeweils vorherigen Befehl ersetzen.
 
@@ -22,13 +22,13 @@ kubectl get pfactivemq -A --no-headers | wc -l
 kubectl get pfactivemq -n kube-pf-activemq -o custom-columns='NAME:.metadata.name,ZIEL:.spec.instance.namespace,REPL:.spec.instance.replicas,READY:.status.conditions[?(@.type=="Ready")].status,READY_GRUND:.status.conditions[?(@.type=="Ready")].reason,BROKERS:.status.conditions[?(@.type=="ActiveMQBrokersReady")].status,GRUND:.status.conditions[?(@.type=="ActiveMQBrokersReady")].reason'
 
 # P-03 Namespaces der Instanzen
-kubectl get pfactivemq -A -o custom-columns=NS:.metadata.namespace --no-headers | sort -u
+kubectl get pfactivemq -A -o 'custom-columns=NS:.metadata.namespace' --no-headers | sort -u
 
 # P-04 / P-09 / P-10 alle Conditions einer Instanz (B2)
 kubectl get pfactivemq <name> -n kube-pf-activemq -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\t"}{.reason}{"\t"}{.lastTransitionTime}{"\t"}{.message}{"\n"}{end}'
 
 # P-05 Instanzen mit 0 Replicas
-kubectl get pfactivemq -A -o custom-columns=NAME:.metadata.name,REPL:.spec.instance.replicas --no-headers | awk '$2==0'
+kubectl get pfactivemq -A -o 'custom-columns=NAME:.metadata.name,REPL:.spec.instance.replicas' --no-headers | awk '$2==0'
 
 # P-06 / P-11 / P-20 / P-24 ArkMQ-Seite (B3)
 kubectl get activemqartemis -A -o custom-columns='NS:.metadata.namespace,NAME:.metadata.name,READY:.status.conditions[?(@.type=="Ready")].status,VALID:.status.conditions[?(@.type=="Valid")].status,ALIGNED:.status.conditions[?(@.type=="BrokerVersionAligned")].status,PROPS:.status.conditions[?(@.type=="BrokerPropertiesApplied")].status,BROKER:.status.version.brokerVersion,IMAGE:.status.version.image,INIT:.status.version.initImage'
@@ -41,20 +41,20 @@ kubectl get pfactivemq <name> -n kube-pf-activemq -o yaml | grep -A6 conditions
 
 ```bash
 # P-21 Images der Operatoren
-kubectl get deploy -n kube-pf-activemq -o custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image
-kubectl get deploy -n kube-artemis-activemq -o custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image
+kubectl get deploy -n kube-pf-activemq -o 'custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image'
+kubectl get deploy -n kube-artemis-activemq -o 'custom-columns=NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image'
 
 # P-22 / P-27 Startargumente PF-Operator (Broker- und Init-Image)
 kubectl get deploy pf-activemq-operator -n kube-pf-activemq -o jsonpath='{.spec.template.spec.containers[0].args}' | tr ',' '\n'
 
 # P-23 Images in den Broker-Pods
-kubectl get pods -A -l ActiveMQArtemis -o custom-columns=NS:.metadata.namespace,POD:.metadata.name,INIT:.spec.initContainers[*].image,IMG:.spec.containers[*].image
+kubectl get pods -A -l ActiveMQArtemis -o 'custom-columns=NS:.metadata.namespace,POD:.metadata.name,INIT:.spec.initContainers[*].image,IMG:.spec.containers[*].image'
 
 # P-25 unterstützte Broker-Versionen im ArkMQ (letzter Eintrag = Sollwert)
 kubectl get deploy -n kube-artemis-activemq -o yaml | grep -A1 RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes | tail -6
 
 # P-26 CRD-Versionen
-kubectl get crd pfactivemqs.pf-activemq-operator.pnet.ch activemqartemises.broker.amq.io -o custom-columns=NAME:.metadata.name,VERS:.spec.versions[*].name,CREATED:.metadata.creationTimestamp
+kubectl get crd pfactivemqs.pf-activemq-operator.pnet.ch activemqartemises.broker.amq.io -o 'custom-columns=NAME:.metadata.name,VERS:.spec.versions[*].name,CREATED:.metadata.creationTimestamp'
 
 # P-28 Digests
 kubectl get pods -n kube-pf-activemq -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.containerStatuses[*].imageID}{"\n"}{end}'
@@ -74,7 +74,7 @@ kubectl get sts e1-mqp-e2e-a-ss -n appl-mqp-e2e-e1 -o jsonpath='{.spec.template.
 kubectl get pdb -A | grep -iE 'mqp|artemis|activemq'
 
 # P-36 / P-37 Update-Strategie und Revisionen
-kubectl get sts -A -l ActiveMQArtemis -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STRAT:.spec.updateStrategy.type,REPL:.spec.replicas,READY:.status.readyReplicas,UPDATED:.status.updatedReplicas,CUR:.status.currentRevision,UPD:.status.updateRevision
+kubectl get sts -A -l ActiveMQArtemis -o 'custom-columns=NS:.metadata.namespace,NAME:.metadata.name,STRAT:.spec.updateStrategy.type,REPL:.spec.replicas,READY:.status.readyReplicas,UPDATED:.status.updatedReplicas,CUR:.status.currentRevision,UPD:.status.updateRevision'
 ```
 
 ## C.4 Operatoren (O)
@@ -128,10 +128,10 @@ kubectl get clusterrole <name> -o yaml
 kubectl get crd analysistemplates.argoproj.io analysisruns.argoproj.io clusteranalysistemplates.argoproj.io
 
 # P-82 Rollouts-Controller und Version
-kubectl get pods -A -o custom-columns=NS:.metadata.namespace,POD:.metadata.name,IMG:.spec.containers[*].image | grep -i rollouts
+kubectl get pods -A -o 'custom-columns=NS:.metadata.namespace,POD:.metadata.name,IMG:.spec.containers[*].image' | grep -i rollouts
 
 # P-80 / P-85 Kargo-Pods, Version, Shards
-kubectl get pods -A -o custom-columns=NS:.metadata.namespace,POD:.metadata.name,IMG:.spec.containers[*].image | grep -i kargo
+kubectl get pods -A -o 'custom-columns=NS:.metadata.namespace,POD:.metadata.name,IMG:.spec.containers[*].image' | grep -i kargo
 
 # P-83 Rollouts-Integration aktiv? (Namespace und Pod aus P-80)
 kubectl logs <kargo-controller-pod> -n <kargo-ns> | grep -i rollouts | head
