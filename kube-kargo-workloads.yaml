@@ -1,0 +1,296 @@
+kargo:
+  image:
+    pullPolicy: IfNotPresent
+
+  global:
+    kargoNamespace: kube-kargo
+    sharedResources:
+      namespace: kube-kargo-shared-resources
+      createNamespace: true
+    systemResources:
+      namespace: kube-kargo-system-resources
+      createNamespace: true
+
+  crds:
+    install: false
+    keep: false
+
+  rbac:
+    installClusterRoles: true
+    installClusterRoleBindings: true
+
+  webhooks:
+    register: false
+
+  api:
+    enabled: false
+
+  managementController:
+    enabled: false
+
+  garbageCollector:
+    enabled: false
+
+  webhooksServer:
+    enabled: false
+
+  externalWebhooksServer:
+    enabled: false
+
+  argocd:
+    dataPlane:
+      install: false
+      kargoController:
+        install: false
+
+  controller:
+    enabled: true
+    metrics:
+      enabled: true
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9090"
+          prometheus.io/path: "/metrics"
+    logLevel: DEBUG
+    logFormat: JSON
+
+    gitClient:
+      name: "Kargo-Bot"
+      email: "kargo-bot@gitlab.pnet.ch"
+      pushIntegrationPolicy: "AlwaysRebase"
+      signingKeySecret:
+        name: ""
+        type: ""
+
+    argocd:
+      integrationEnabled: true
+      namespace: kube-argocd-master
+      watchArgocdNamespaceOnly: true
+
+    rollouts:
+      integrationEnabled: true
+      controllerInstanceID: ""
+
+    allowCredentialsOverHTTP: false
+
+    cabundle:
+      configMapName: ""
+      secretName: ""
+
+    annotations:
+      collectord.io/output: "splunk"
+      collectord.io/logs-index: "kargoitd"
+
+    initContainers:
+      - name: add-pf-pki-all
+        image: linux-docker-local.repo.pnet.ch/pf/alpine:3.24.2202610140623
+        imagePullPolicy: Always
+        securityContext:
+          runAsUser: 0
+        command:
+          - "/bin/sh"
+          - "-c"
+        args:
+          - |
+            cp -rL /etc/ssl/certs/* /tmp/target/
+            cp /pf-pki/* /tmp/target/
+        volumeMounts:
+          - name: certs
+            mountPath: /tmp/target
+          - name: pf-pki
+            mountPath: /pf-pki
+      - name: prepare-kubeconfig
+        image: linux-docker-local.repo.pnet.ch/pf/alpine:3.24.2202610140623
+        imagePullPolicy: Always
+        command:
+          - sh
+          - -c
+          - |
+            # Install jq for reliable JSON parsing
+            apk add --no-cache jq
+
+            # Use jq for reliable JSON parsing
+            CA_DATA=$(echo "$CLUSTER_CONFIG" | jq -r '.tlsClientConfig.caData // empty')
+            EXEC_CMD=$(echo "$CLUSTER_CONFIG" | jq -r '.execProviderConfig.command // empty')
+            EXEC_API=$(echo "$CLUSTER_CONFIG" | jq -r '.execProviderConfig.apiVersion // empty')
+
+            ARGOCD_CA_DATA=$(echo "$ARGOCD_CLUSTER_CONFIG" | jq -r '.tlsClientConfig.caData // empty')
+            ARGOCD_EXEC_CMD=$(echo "$ARGOCD_CLUSTER_CONFIG" | jq -r '.execProviderConfig.command // empty')
+            ARGOCD_EXEC_API=$(echo "$ARGOCD_CLUSTER_CONFIG" | jq -r '.execProviderConfig.apiVersion // empty')
+
+            # Build kubeconfig YAML with proper shell quoting to handle special chars
+            cat > /etc/kargo/kubeconfigs/kubeconfig.yaml << 'KUBECONFIG_EOF'
+            apiVersion: v1
+            kind: Config
+            clusters:
+            - cluster:
+                insecure-skip-tls-verify: true
+                server: CLUSTER_SERVER_PLACEHOLDER
+                tlsClientConfig:
+                  caData: CLUSTER_CA_DATA_PLACEHOLDER
+              name: CLUSTER_NAME_PLACEHOLDER
+            contexts:
+            - context:
+                cluster: CLUSTER_NAME_PLACEHOLDER
+                user: CLUSTER_NAME_PLACEHOLDER
+              name: CLUSTER_NAME_PLACEHOLDER
+            current-context: CLUSTER_NAME_PLACEHOLDER
+            users:
+            - name: CLUSTER_NAME_PLACEHOLDER
+              user:
+                exec:
+                  apiVersion: CLUSTER_EXEC_API_PLACEHOLDER
+                  command: CLUSTER_EXEC_CMD_PLACEHOLDER
+                  interactiveMode: IfAvailable
+            KUBECONFIG_EOF
+
+            # Use safer replacement approach with unique delimiters
+            sed -i "s|CLUSTER_SERVER_PLACEHOLDER|${CLUSTER_SERVER}|g" /etc/kargo/kubeconfigs/kubeconfig.yaml
+            sed -i "s|CLUSTER_CA_DATA_PLACEHOLDER|${CA_DATA}|g" /etc/kargo/kubeconfigs/kubeconfig.yaml
+            sed -i "s|CLUSTER_NAME_PLACEHOLDER|${CLUSTER_NAME}|g" /etc/kargo/kubeconfigs/kubeconfig.yaml
+            sed -i "s|CLUSTER_EXEC_API_PLACEHOLDER|${EXEC_API}|g" /etc/kargo/kubeconfigs/kubeconfig.yaml
+            sed -i "s|CLUSTER_EXEC_CMD_PLACEHOLDER|${EXEC_CMD}|g" /etc/kargo/kubeconfigs/kubeconfig.yaml
+
+            # Build a separate kubeconfig for the ArgoCD integration, using the
+            # kargo-argocd compauth identity instead of the kargo-cp one
+            cat > /etc/kargo/kubeconfigs/argocd-kubeconfig.yaml << 'ARGOCD_KUBECONFIG_EOF'
+            apiVersion: v1
+            kind: Config
+            clusters:
+            - cluster:
+                insecure-skip-tls-verify: true
+                server: CLUSTER_SERVER_PLACEHOLDER
+                tlsClientConfig:
+                  caData: CLUSTER_CA_DATA_PLACEHOLDER
+              name: CLUSTER_NAME_PLACEHOLDER
+            contexts:
+            - context:
+                cluster: CLUSTER_NAME_PLACEHOLDER
+                user: CLUSTER_NAME_PLACEHOLDER
+              name: CLUSTER_NAME_PLACEHOLDER
+            current-context: CLUSTER_NAME_PLACEHOLDER
+            users:
+            - name: CLUSTER_NAME_PLACEHOLDER
+              user:
+                exec:
+                  apiVersion: CLUSTER_EXEC_API_PLACEHOLDER
+                  command: CLUSTER_EXEC_CMD_PLACEHOLDER
+                  interactiveMode: IfAvailable
+                  env:
+                  - name: K8S_COMPAUTH_AUTHENTICATOR_KEY_FILE
+                    value: /etc/kargo/compauth-argocd/a-pf-appl-kargo-argocd-lab-d_key.pem
+                  - name: K8S_COMPAUTH_AUTHENTICATOR_CERT_FILE
+                    value: /etc/kargo/compauth-argocd/a-pf-appl-kargo-argocd-lab-d_certificate.pem
+                  - name: K8S_COMPAUTH_AUTHENTICATOR_PASSWORD_FILE
+                    value: /etc/kargo/compauth-argocd/password.raw
+            ARGOCD_KUBECONFIG_EOF
+
+            sed -i "s|CLUSTER_SERVER_PLACEHOLDER|${ARGOCD_CLUSTER_SERVER}|g" /etc/kargo/kubeconfigs/argocd-kubeconfig.yaml
+            sed -i "s|CLUSTER_CA_DATA_PLACEHOLDER|${ARGOCD_CA_DATA}|g" /etc/kargo/kubeconfigs/argocd-kubeconfig.yaml
+            sed -i "s|CLUSTER_NAME_PLACEHOLDER|${ARGOCD_CLUSTER_NAME}|g" /etc/kargo/kubeconfigs/argocd-kubeconfig.yaml
+            sed -i "s|CLUSTER_EXEC_API_PLACEHOLDER|${ARGOCD_EXEC_API}|g" /etc/kargo/kubeconfigs/argocd-kubeconfig.yaml
+            sed -i "s|CLUSTER_EXEC_CMD_PLACEHOLDER|${ARGOCD_EXEC_CMD}|g" /etc/kargo/kubeconfigs/argocd-kubeconfig.yaml
+        env:
+          - name: CLUSTER_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: e1-k8s-pfnet-lab-d
+                key: server
+          - name: CLUSTER_NAME
+            valueFrom:
+              secretKeyRef:
+                name: e1-k8s-pfnet-lab-d
+                key: name
+          - name: CLUSTER_CONFIG
+            valueFrom:
+              secretKeyRef:
+                name: e1-k8s-pfnet-lab-d
+                key: config
+          - name: ARGOCD_CLUSTER_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: e1-k8s-pfnet-lab-d
+                key: server
+          - name: ARGOCD_CLUSTER_NAME
+            valueFrom:
+              secretKeyRef:
+                name: e1-k8s-pfnet-lab-d
+                key: name
+          - name: ARGOCD_CLUSTER_CONFIG
+            valueFrom:
+              secretKeyRef:
+                name: e1-k8s-pfnet-lab-d
+                key: config
+        volumeMounts:
+          - name: kubeconfigs
+            mountPath: /etc/kargo/kubeconfigs
+
+    volumes:
+      - name: certs
+        emptyDir: {}
+      - name: pf-pki
+        secret:
+          secretName: ces-data-p1-shared-pki-all-store
+      - name: kubeconfigs
+        emptyDir: {}
+      - name: compauth
+        secret:
+          secretName: ces-data-p1-compauth-kargo-cp-lab-store
+          optional: true
+      - name: compauth-argocd
+        secret:
+          secretName: ces-data-p1-compauth-kargo-argocd-lab-d-store
+          optional: true
+
+    volumeMounts:
+      - mountPath: /etc/ssl/certs
+        name: certs
+      - mountPath: /etc/kargo/kubeconfigs
+        name: kubeconfigs
+        readOnly: true
+      - mountPath: /etc/kargo/compauth
+        name: compauth
+        readOnly: true
+      - mountPath: /etc/kargo/compauth-argocd
+        name: compauth-argocd
+        readOnly: true
+
+    env:
+      - name: KUBECONFIG
+        value: /etc/kargo/kubeconfigs/kubeconfig.yaml
+      - name: ARGOCD_KUBECONFIG
+        value: /etc/kargo/kubeconfigs/argocd-kubeconfig.yaml
+      - name: LOCAL_CLUSTER_CREDS_FALLBACK
+        value: "true"
+      - name: K8S_COMPAUTH_AUTHENTICATOR_KEY_FILE
+        value: /etc/kargo/compauth/a-pf-appl-kargo-cp-lab_key.pem
+      - name: K8S_COMPAUTH_AUTHENTICATOR_CERT_FILE
+        value: /etc/kargo/compauth/a-pf-appl-kargo-cp-lab_certificate.pem
+      - name: K8S_COMPAUTH_AUTHENTICATOR_PASSWORD_FILE
+        value: /etc/kargo/compauth/password.raw
+
+kargoRolloutsVerification:
+  enabled: true
+
+  instanceID: ""
+
+  image:
+    registry: middleware-docker.repo.pnet.ch
+    repository: argoproj/argo-rollouts
+    tag: v1.9.1
+
+  compauth:
+    image:
+      registry: middleware-docker-local.repo.pnet.ch
+      repository: pf/mw/kargo
+      tag: v1.11.0.202608050855
+
+  controlPlane:
+    clusterSecretName: e1-k8s-pfnet-lab-d
+    compauthSecretName: ces-data-p1-compauth-kargo-cp-lab-store
+    kubeconfigPath: /etc/argo-rollouts/control-plane/kubeconfig.yaml
+
+  jobCluster:
+    kubeconfigPath: /etc/argo-rollouts/job-cluster/kubeconfig.yaml
+    namespace: kube-kargo-workloads
