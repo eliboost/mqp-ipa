@@ -1,0 +1,305 @@
+kargo:
+  image:
+    pullPolicy: IfNotPresent
+
+  global:
+    sharedResources:
+      namespace: kube-kargo
+      createNamespace: false
+      createRBAC: true
+    systemResources:
+      namespace: kube-kargo
+      createNamespace: false
+      createRBAC: false
+    annotations:
+      collectord.io/output: "splunk"
+      collectord.io/logs-index: "kargoitd"
+
+  crds:
+    install: true
+    keep: true
+
+  rbac:
+    installClusterRoles: true
+    installClusterRoleBindings: true
+
+  webhooks:
+    register: true
+
+  api:
+    enabled: true
+    replicas: 2
+    host: kargo.pfportal-test.pnet.ch
+    logLevel: INFO
+    logFormat: JSON
+    secretManagementEnabled: false
+    permissiveCORSPolicyEnabled: true
+
+    adminAccount:
+      enabled: false
+
+    oidc:
+      enabled: true
+      clientID: cop-kargo
+      additionalScopes:
+        - groups
+        - openid
+        - profile
+      usernameClaim: email
+      users:
+        claims:
+          groups:
+            - cop_appl_asmmw
+            - cop_appl_linux
+            - cop_cluster_admin
+      globalServiceAccounts:
+        namespaces: []
+      dex:
+        enabled: true
+        image:
+          pullPolicy: IfNotPresent
+        skipApprovalScreen: true
+        connectors:
+          - id: pfportal
+            name: PostFinance IdP
+            type: oidc
+            config:
+              issuer: https://pfportal-test.pnet.ch/auth/oidc
+              clientID: cop-kargo
+              clientSecret: "$CLIENT_SECRET"
+              redirectURI: https://kargo.pfportal-test.pnet.ch/dex/callback
+              scopes:
+                - openid
+                - profile
+                - email
+                - groups
+              getUserInfo: true
+              # this setting is needed in order for kargo to get all cop roles: https://dexidp.io/docs/connectors/oidc/#:~:text=insecureEnableGroups
+              insecureEnableGroups: true
+              rootCAs:
+                - /etc/ssl/pf-pki/truststore.pem
+        env:
+          - name: CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: kargo-oidc
+                key: CLIENT_SECRET
+        volumes:
+          - name: pf-pki
+            secret:
+              secretName: ces-data-p1-shared-pki-all-store
+        volumeMounts:
+          - name: pf-pki
+            mountPath: /etc/ssl/pf-pki
+            readOnly: true
+        annotations:
+          secret.reloader.stakater.com/reload: "kargo-dex-server-cert"
+        probes:
+          enabled: true
+        tls:
+          selfSignedCert: false
+          secretName: kargo-dex-server-cert
+
+    rollouts:
+      integrationEnabled: true
+      logs:
+        enabled: true
+        urlTemplate: "http://kargo-analysisrun-logs.kube-kargo-logs.svc.cluster.local:8080/api/v1/logs/${{project}}/${{analysisRun}}/${{metricName}}/${{container}}"
+
+    annotations:
+      # kargo-api mounts kargo-dex-server-cert's CA as idp-ca.crt to validate TLS when calling kargo-dex-server
+      secret.reloader.stakater.com/reload: "kargo-dex-server-cert"
+
+    tls:
+      enabled: false
+      terminatedUpstream: true
+
+    # exposed via HTTPRoute kargo-api (templates/httproute.yaml) instead
+    ingress:
+      enabled: false
+
+    service:
+      type: ClusterIP
+
+  controller:
+    enabled: true
+    metrics:
+      enabled: true
+      # scraped by victoria-metrics-agent (kube-telemetry) via annotations
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9090"
+          prometheus.io/path: "/metrics"
+    logLevel: INFO
+    logFormat: JSON
+    allowCredentialsOverHTTP: false
+    reconcilers:
+      maxConcurrentReconciles: 4
+      warehouses:
+        minReconciliationInterval: "5m0s"
+    gitClient:
+      name: "Kargo-Bot"
+      email: "kargo-bot@gitlab.pnet.ch"
+    argocd:
+      integrationEnabled: true
+      namespace: kube-argocd-master
+      watchArgocdNamespaceOnly: true
+    rollouts:
+      integrationEnabled: true
+      controllerInstanceID: "e1-k8s-pfnet-lab-d"
+    initContainers:
+      - name: add-pf-pki-all
+        image: linux-docker-local.repo.pnet.ch/pf/alpine:3.24.2202610140623
+        imagePullPolicy: Always
+        securityContext:
+          runAsUser: 0
+        command:
+          - "/bin/sh"
+          - "-c"
+        args:
+          - |
+            cp -rL /etc/ssl/certs/*  /tmp/target/
+        volumeMounts:
+          - name: certs
+            mountPath: /tmp/target
+    volumes:
+      - name: certs
+        emptyDir: {}
+    volumeMounts:
+      - mountPath: /etc/ssl/certs
+        name: certs
+    cabundle:
+      configMapName: ""
+      secretName: ""
+
+  garbageCollector:
+    enabled: true
+    logLevel: INFO
+    logFormat: JSON
+    schedule: "0 * * * *"
+    workers: 3
+    maxRetainedPromotions: 20
+    minPromotionDeletionAge: 336h
+    maxRetainedFreight: 20
+    minFreightDeletionAge: 336h
+
+  externalWebhooksServer:
+    enabled: false
+
+  managementController:
+    enabled: true
+    metrics:
+      enabled: true
+      # scraped by victoria-metrics-agent (kube-telemetry) via annotations
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9090"
+          prometheus.io/path: "/metrics"
+    logLevel: INFO
+    logFormat: JSON
+    reconcilers:
+      maxConcurrentReconciles: 4
+
+  webhooksServer:
+    enabled: true
+    metrics:
+      enabled: true
+      # scraped by victoria-metrics-agent (kube-telemetry) via annotations
+      service:
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9090"
+          prometheus.io/path: "/metrics"
+    replicas: 1
+    logLevel: INFO
+    logFormat: JSON
+    tls:
+      selfSignedCert: false
+      secretName: kargo-webhooks-server-cert
+      caBundle: ""
+
+networkPolicies:
+  - name: allow-webhook-access-from-kube-system
+    ingress:
+      - ports:
+          - port: 9443
+            protocol: TCP
+    policyTypes:
+      - Ingress
+
+certificates:
+  - name: kargo-webhooks-server
+    secretName: kargo-webhooks-server-cert
+    commonName: kargo.e1-pfnet-lab-d.pnet.ch
+    dnsNames:
+      - kargo-webhooks-server.kube-kargo.svc.cluster.local
+      - kargo-webhooks-server.kube-kargo.svc
+      - kargo.e1-pfnet-lab-d.pnet.ch
+    issuer: ca-postfinance-7d
+  - name: kargo-dex-server-cert
+    commonName: kargo-dex-server.kube-kargo.svc
+    dnsNames:
+      - kargo-dex-server.kube-kargo.svc
+      - kargo-dex-server.kube-kargo.svc.cluster.local
+    issuer: ca-postfinance-7d
+
+httproutes:
+  - name: kargo-api
+    hostnames:
+      - "kargo.pfportal-test.pnet.ch"
+      - "kargo.e1-pfnet-lab-d.pnet.ch"
+    matches:
+      - path:
+          type: PathPrefix
+          value: /
+    backendRefs:
+      - name: kargo-api
+        port: 80
+
+externalSecrets:
+  - name: kargo-oidc
+    dataFrom:
+      - extract:
+          conversionStrategy: Default
+          decodingStrategy: None
+          key: secret/team_asmmw/k8s/e1-k8s-pfnet-lab/kube-kargo/kargo-oidc
+          metadataPolicy: None
+
+clusterRoleBindings:
+  # RBAC for the remote kargo-cp shard controllers (e.g. e1-k8s-pfnet-lab-c),
+  # which connect here via compauth identities instead of local ServiceAccounts.
+  # Binds only the chart's controller ClusterRoles; kargo-controller-read-secrets
+  # is intentionally not bound cluster-wide (per-Project RoleBindings instead).
+  - name: kargo-cp-idm-controller
+    clusterRole: kargo-controller
+    subjects:
+      - apiGroup: rbac.authorization.k8s.io
+        kind: Group
+        name: copsrv_kargo_cp_lab
+  - name: kargo-cp-idm-controller-rollouts
+    clusterRole: kargo-controller-rollouts
+    subjects:
+      - apiGroup: rbac.authorization.k8s.io
+        kind: Group
+        name: copsrv_kargo_cp_lab
+
+  # Argo-Rollouts-Verification-Controller der Remote-Shards.
+  # Der Controller läuft beispielsweise auf lab-c, beobachtet aber über seine
+  # Control-Plane-Kubeconfig die AnalysisRuns auf lab-d.
+  - name: kargo-cp-idm-argo-rollouts-verification
+    clusterRole: e1-k8s-pfnet-lab-d-kube-argo-rollouts
+    subjects:
+      - apiGroup: rbac.authorization.k8s.io
+        kind: Group
+        name: copsrv_kargo_cp_lab
+
+roleBindings:
+  # kargo-cp identity: heartbeat lease in kube-kargo (chart's Role kargo-controller)
+  - name: kargo-cp-idm-leases
+    roleName: kargo-controller
+    subjects:
+      - apiGroup: rbac.authorization.k8s.io
+        kind: Group
+        name: copsrv_kargo_cp_lab
